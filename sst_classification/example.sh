@@ -26,3 +26,4 @@ python main_gft_correct_fc.py /scratch/zhiqiu/crop_20_shot --classes 38 --epoch 
 
 # You can (and should) repeat this process iteratively, just make sure you changed all the paths accordingly so they don't overwrite your earlier checkpoints
 # e.g., "--ckpt_dir", '--resume', '--finetuned_model'
+
