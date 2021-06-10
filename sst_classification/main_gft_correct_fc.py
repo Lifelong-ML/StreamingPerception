@@ -1,3 +1,6 @@
+print("first line print", flush=True)
+
+
 import argparse
 import os
 import random
@@ -17,6 +20,7 @@ import torch.utils.data.distributed
 import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
+import sys
 
 from utils import get_finetuned_folder_name, get_train_transform, get_test_transform, load_from_checkpoint, save_checkpoint, model_names, ProgressMeter, AverageMeter, adjust_learning_rate, accuracy
 
@@ -83,6 +87,7 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
 best_acc1 = 0
 
 def main():
+    print("main() called", flush=True)
     args = parser.parse_args()
 
     if args.seed is not None:
@@ -105,6 +110,8 @@ def main():
     args.distributed = args.world_size > 1 or args.multiprocessing_distributed
 
     ngpus_per_node = torch.cuda.device_count()
+    sys.stdout.flush()
+
     if args.multiprocessing_distributed:
         # Since we have ngpus_per_node processes per node, the total world_size
         # needs to be adjusted accordingly
@@ -140,10 +147,11 @@ def main_worker(gpu, ngpus_per_node, args):
     else:
         print("=> creating model '{}'".format(args.arch))
         model = models.__dict__[args.arch]()
-    
+
     if model.fc.weight.shape[0] != args.classes:
         print("changing the size of last layer")
         model.fc = torch.nn.Linear(model.fc.weight.shape[1], args.classes)
+    sys.stdout.flush()
 
     if not torch.cuda.is_available():
         print('using CPU, this will be slow')
@@ -151,7 +159,9 @@ def main_worker(gpu, ngpus_per_node, args):
         # For multiprocessing distributed, DistributedDataParallel constructor
         # should always set the single device scope, otherwise,
         # DistributedDataParallel will use all available devices.
+        print("here1", flush=True)
         if args.gpu is not None:
+            print("here2", flush=True)
             torch.cuda.set_device(args.gpu)
             model.cuda(args.gpu)
             # When using a single GPU per process and per
@@ -160,11 +170,14 @@ def main_worker(gpu, ngpus_per_node, args):
             args.batch_size = int(args.batch_size / ngpus_per_node)
             args.workers = int((args.workers + ngpus_per_node - 1) / ngpus_per_node)
             model = torch.nn.parallel.DistributedDataParallel(model, device_ids=[args.gpu])
+            print("here3", flush=True)
         else:
+            print("here4", flush=True)
             model.cuda()
             # DistributedDataParallel will divide and allocate batch_size to all
             # available GPUs if device_ids are not set
             model = torch.nn.parallel.DistributedDataParallel(model)
+            print("here5", flush=True)
     elif args.gpu is not None:
         torch.cuda.set_device(args.gpu)
         model = model.cuda(args.gpu)
@@ -196,6 +209,7 @@ def main_worker(gpu, ngpus_per_node, args):
         exit(0)
 
     # Data loading code
+    print("Beginning Data Loading",flush=True)
     traindir = os.path.join(args.data, 'train')
     valdir = os.path.join(args.data, 'val')
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -230,6 +244,7 @@ def main_worker(gpu, ngpus_per_node, args):
         if not os.path.exists(finetuned_folder):
             os.makedirs(finetuned_folder)
 
+    print("Beginning training", flush=True)
     for epoch in range(start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
@@ -301,6 +316,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
         if i % args.print_freq == 0:
             progress.display(i)
+            sys.stdout.flush()
 
 
 def validate(val_loader, model, criterion, args):
