@@ -85,6 +85,7 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
 best_acc1 = 0
 
 def main():
+    print("manin() called", flush=True)
     args = parser.parse_args()
 
     if args.seed is not None:
