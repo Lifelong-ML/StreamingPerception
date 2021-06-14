@@ -8,21 +8,26 @@ model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
     and callable(models.__dict__[name]))
 
-def just_save_checkpoint(state, folder, filename='checkpoint.pth.tar'):
+def just_save_checkpoint(state, folder, filename='checkpoint.state'):
+    recent_name = state["arch"] + "_checkpoint_e" + str(state["epoch"]) + ".state"
     torch.save(state, os.path.join(folder, filename))
-    shutil.copyfile(os.path.join(folder, filename), os.path.join(folder, 'model_best.pth.tar'))
+    torch.save(state, os.path.join(folder, recent_name))
+    shutil.copyfile(os.path.join(folder, filename), os.path.join(folder, 'model_best.state'))
 
-def save_checkpoint(state, folder, filename='checkpoint.pth.tar'):
+def save_checkpoint(state, folder, filename='checkpoint.state'):
+    recent_name = state["arch"] + "_checkpoint_e" + str(state["epoch"]) + ".state"
     torch.save(state, os.path.join(folder, filename))
-    best_ckpt = os.path.join(folder, 'model_best.pth.tar')
+    torch.save(state, os.path.join(folder, recent_name))
+    best_ckpt = os.path.join(folder, 'model_best.state')
+
     if os.path.exists(best_ckpt):
         best = torch.load(best_ckpt)['best_acc1']
         is_best = best < state['best_acc1']
     else:
         is_best = True
     if is_best:
-        print(f"Better than currently best model. Save at {os.path.join(folder, 'model_best.pth.tar')}")
-        shutil.copyfile(os.path.join(folder, filename), os.path.join(folder, 'model_best.pth.tar'))
+        print(f"Better than currently best model. Save at {os.path.join(folder, 'model_best.state')}")
+        shutil.copyfile(os.path.join(folder, filename), os.path.join(folder, 'model_best.state'))
 
 def get_scratch_folder_name(args):
     return os.path.join(args.ckpt_dir, args.arch+"_scratch")
