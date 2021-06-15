@@ -1,11 +1,11 @@
 # choose parameters
 server = "lml"                  #should be "lml" or "gc"
 class_data = "flowers"
-experiment = "flowers1"
-arch = "resnet50"
-stage = 1
-data_path = "/mnt/Data/Streaming_Data/flower_data"
-
+experiment = "flowers2"
+arch = "resnet18"
+stage = 4
+data_path = "/mnt/Data/Streaming_Data/102flowers/"
+stream_data_path = "/mnt/Data/Streaming_Data/imagenet/tiny-imagenet-200"
 
 '''
 Commone data_path options:
@@ -47,7 +47,7 @@ def get_dir_path():
     if (server == "gc"):
         path += "/scratch/ssolit/StreamingPerception/" + experiment
     elif (server == "lml"):
-        path += "../" + experiment
+        path += "/mnt/Data/Streaming_Data/" + experiment
     return path
 
 def get_py_str():
@@ -64,9 +64,10 @@ def get_py_str():
     #Pseudolabel
     elif (stage == 2):
         py_str += " generate_labels_correct_fc.py"
+        py_str += " " + stream_data_path
         py_str += " --classes " + get_class_num()
         py_str += " --a " + arch
-        py_str += " --resume " + get_dir_path() + "/init/resnet18_scratch/model_best.pth.tar"
+        py_str += " --resume " + get_dir_path() + "/init/resnet18_scratch/model_best.state"
         py_str += " --data_save_dir " + get_dir_path()
     #Pseudo Train
     elif (stage == 3):
@@ -77,7 +78,7 @@ def get_py_str():
         py_str += " --epochs 30"
         py_str += " --step 25"
         py_str += " --ckpt_dir " + get_dir_path() + "/pseudo_train"
-        py_str += " --resume " + get_dir_path() + "/pseudo_train/resnet18_scratch/checkpoint.pth.tar"
+        py_str += " --resume " + get_dir_path() + "/pseudo_train/resnet18_scratch/checkpoint.state"
     #Finetune
     elif (stage == 4):
         py_str += " main_gft_correct_fc.py"
@@ -87,7 +88,7 @@ def get_py_str():
         py_str += " --epochs 4000"
         py_str += " --step 25"
         py_str += " --ckpt_dir " + get_dir_path() + "/finetune"
-        py_str += " --finetuned_model " + get_dir_path() + "/finetune/resnet18_scratch/checkpoint.pth.tar"
+        py_str += " --finetuned_model " + get_dir_path() + "/finetune/resnet18_finetuned/checkpoint.state"
     #Evaluate
     else:
         py_str += " main_gft_correct_fc.py"
@@ -98,7 +99,9 @@ def get_py_str():
         py_str += " --step 25"
         py_str += " --ckpt_dir " + get_dir_path() + "/finetune"
         py_str += " --evaluate"
-        py_str += " --finetuned_model " + get_dir_path() + "/finetune/resnet18_finetuned/model_best.pth.tar"
+        py_str += " --finetuned_model " + get_dir_path() + "/finetune/resnet18_finetuned/model_best.state"
+    if (server == "lml"):
+        py_str += " -b 128"
     return py_str
 
 final_str = ""
