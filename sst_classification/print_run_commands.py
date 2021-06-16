@@ -2,10 +2,12 @@
 server = "lml"                  #should be "lml" or "gc"
 class_data = "flowers"
 experiment = "flowers2"
-arch = "resnet18"
-stage = 4
+arch = "resnet50"
+stage = 5
 data_path = "/mnt/Data/Streaming_Data/102flowers/"
 stream_data_path = "/mnt/Data/Streaming_Data/imagenet/tiny-imagenet-200"
+#resume = "/mnt/Data/Streaming_Data/flowers2/resnet18/finetune/resnet18_finetuned/model_best.state"
+resume = None
 
 '''
 Commone data_path options:
@@ -45,9 +47,9 @@ def get_class_num():
 def get_dir_path():
     path = ""
     if (server == "gc"):
-        path += "/scratch/ssolit/StreamingPerception/" + experiment
+        path += "/scratch/ssolit/StreamingPerception/" + experiment + "/" + arch
     elif (server == "lml"):
-        path += "/mnt/Data/Streaming_Data/" + experiment
+        path += "/mnt/Data/Streaming_Data/" + experiment + "/" + arch
     return path
 
 def get_py_str():
@@ -67,8 +69,9 @@ def get_py_str():
         py_str += " " + stream_data_path
         py_str += " --classes " + get_class_num()
         py_str += " --a " + arch
-        py_str += " --resume " + get_dir_path() + "/init/resnet18_scratch/model_best.state"
         py_str += " --data_save_dir " + get_dir_path()
+        if (resume!=None):
+          py_str += " --resume " + resume
     #Pseudo Train
     elif (stage == 3):
         py_str += " main_g_correct_fc.py"
@@ -78,7 +81,8 @@ def get_py_str():
         py_str += " --epochs 30"
         py_str += " --step 25"
         py_str += " --ckpt_dir " + get_dir_path() + "/pseudo_train"
-        py_str += " --resume " + get_dir_path() + "/pseudo_train/resnet18_scratch/checkpoint.state"
+        if (resume!=None):
+          py_str += " --resume " + resume
     #Finetune
     elif (stage == 4):
         py_str += " main_gft_correct_fc.py"
@@ -88,7 +92,7 @@ def get_py_str():
         py_str += " --epochs 4000"
         py_str += " --step 25"
         py_str += " --ckpt_dir " + get_dir_path() + "/finetune"
-        py_str += " --finetuned_model " + get_dir_path() + "/finetune/resnet18_finetuned/checkpoint.state"
+        py_str += " --finetuned_model " + get_dir_path() + "/finetune/" + arch + "_finetuned/checkpoint.state"
     #Evaluate
     else:
         py_str += " main_gft_correct_fc.py"
