@@ -1,13 +1,13 @@
 # choose parameters
-server = "lml"                  #should be "lml" or "gc"
-class_data = "flowers"
-experiment = "flowers2"
+server = "gc"                  #should be "lml" or "gc"
+class_data = "CUB"
+experiment = "init_replication"
 arch = "resnet50"
-stage = 5
-data_path = "/mnt/Data/Streaming_Data/102flowers/"
-stream_data_path = "/mnt/Data/Streaming_Data/imagenet/tiny-imagenet-200"
-#resume = "/mnt/Data/Streaming_Data/flowers2/resnet18/finetune/resnet18_finetuned/model_best.state"
-resume = None
+stage = 2
+data_path = "/Datasets/CUB_200_2011"
+stream_data_path = "/Datasets/imagenet/imagenet21k_resized/imagenet21k_train/"
+resume = "/scratch/ssolit/StreamingPerception/init_replication/finetune/resnet18_finetuned/model_best.state"
+#resume = None
 
 '''
 Commone data_path options:
@@ -17,9 +17,9 @@ Commone data_path options:
 mem_per_gpu = "32G"
 cpus_per_gpu = "16"
 gpus = "1"
-time = "6:00:00"
+time = "24:00:00"
 qos = "eaton-high"
-partition = "-eaton-compute"
+partition = "eaton-compute"
 
 
 
@@ -28,9 +28,9 @@ def get_slurm_str():
     slurm_str += " --mem-per-gpu=" + mem_per_gpu
     slurm_str += " --cpus-per-gpu=" + cpus_per_gpu
     slurm_str += " --gpus=" + gpus
-    slurm_str += "--time=" + time
+    slurm_str += " --time=" + time
     slurm_str += " --qos=" + qos
-    slurm_str += " -partition=" + partition
+    slurm_str += " --partition=" + partition
     return slurm_str
 
 def get_class_num():
