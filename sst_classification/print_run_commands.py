@@ -1,18 +1,14 @@
 # choose parameters
-server = "gc"                  #should be "lml" or "gc"
-class_data = "CUB"
-experiment = "init_replication"
-arch = "resnet50"
-stage = 2
-data_path = "/Datasets/CUB_200_2011"
-stream_data_path = "/Datasets/imagenet/imagenet21k_resized/imagenet21k_train/"
-resume = "/scratch/ssolit/StreamingPerception/init_replication/finetune/resnet18_finetuned/model_best.state"
+server = "lml"
+class_data = "flowers"
+experiment = "flowers2"
+arch = "resnext50"
+stage = 1
+data_path = "/mnt/Data/Streaming_Data/102flowers"
+stream_data_path = "/mnt/Data/Streaming_Data/imagenet/imagenet3M"
+resume = "/mnt/Data/Streaming_Data/flowers2/resnext50/init/resnext50_32x4d_scratch/checkpoint.state"
 #resume = None
 
-'''
-Commone data_path options:
-/mnt/Data/Streaming_Data/flowers
-'''
 
 mem_per_gpu = "32G"
 cpus_per_gpu = "16"
@@ -53,23 +49,27 @@ def get_dir_path():
     return path
 
 def get_py_str():
+    dir_path = get_dir_path()
+    arch_name = arch
+    if (arch == "resnext50"):
+      arch_name = "resnext50_32x4d"
     py_str = "python3"
     #initialize
     if (stage == 1):
         py_str += " main_correct_size.py"
         py_str += " " + data_path
         py_str += " --classes " + get_class_num()
-        py_str += " --a " + arch
+        py_str += " --a " + arch_name
         py_str += " --epochs 4000"
         py_str += " --step 1500"
-        py_str += " --ckpt_dir " + get_dir_path() + "/init"
+        py_str += " --ckpt_dir " + dir_path + "/init"
     #Pseudolabel
     elif (stage == 2):
         py_str += " generate_labels_correct_fc.py"
         py_str += " " + stream_data_path
         py_str += " --classes " + get_class_num()
-        py_str += " --a " + arch
-        py_str += " --data_save_dir " + get_dir_path()
+        py_str += " --a " + arch_name
+        py_str += " --data_save_dir " + dir_path
         if (resume!=None):
           py_str += " --resume " + resume
     #Pseudo Train
@@ -77,10 +77,10 @@ def get_py_str():
         py_str += " main_g_correct_fc.py"
         py_str += " " + get_dir_path()
         py_str += " --classes " + get_class_num()
-        py_str += " --a " + arch
+        py_str += " --a " + arch_name
         py_str += " --epochs 30"
         py_str += " --step 25"
-        py_str += " --ckpt_dir " + get_dir_path() + "/pseudo_train"
+        py_str += " --ckpt_dir " + dir_path + "/pseudo_train"
         if (resume!=None):
           py_str += " --resume " + resume
     #Finetune
@@ -88,22 +88,22 @@ def get_py_str():
         py_str += " main_gft_correct_fc.py"
         py_str += " " + data_path
         py_str += " --classes " + get_class_num()
-        py_str += " --a " + arch
+        py_str += " --a " + arch_name
         py_str += " --epochs 4000"
         py_str += " --step 25"
-        py_str += " --ckpt_dir " + get_dir_path() + "/finetune"
-        py_str += " --finetuned_model " + get_dir_path() + "/finetune/" + arch + "_finetuned/checkpoint.state"
+        py_str += " --ckpt_dir " + dir_path + "/finetune"
+        py_str += " --finetuned_model " + dir_path + "/finetune/" + arch + "_finetuned/checkpoint.state"
     #Evaluate
     else:
         py_str += " main_gft_correct_fc.py"
         py_str += " " + data_path
         py_str += " --classes " + get_class_num()
-        py_str += " --a " + arch
+        py_str += " --a " + arch_name
         py_str += " --epochs 4000"
         py_str += " --step 25"
-        py_str += " --ckpt_dir " + get_dir_path() + "/finetune"
+        py_str += " --ckpt_dir " + dir_path + "/finetune"
         py_str += " --evaluate"
-        py_str += " --finetuned_model " + get_dir_path() + "/finetune/resnet18_finetuned/model_best.state"
+        py_str += " --finetuned_model " + dir_path + "/finetune/" + arch_name + "_finetuned/model_best.state"
     if (server == "lml"):
         py_str += " -b 128"
     return py_str
