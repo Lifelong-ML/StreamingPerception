@@ -126,7 +126,7 @@ def copy_images(data_save_dir, testfilename):
         new_dir = os.path.join(save_dir, x2)
         if not os.path.isdir(new_dir):
             os.mkdir(new_dir)
-        shutil.copy(x1, new_dir)
+        shutil.copy(x1, new_dir, follow_symlinks=False)
     f.close()
 
 
