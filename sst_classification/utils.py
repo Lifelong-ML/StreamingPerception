@@ -3,6 +3,7 @@ import torch
 import shutil
 import torchvision.transforms as transforms
 import torchvision.models as models
+#import torchvision.datasets.DatasetFolder as DatasetFolder
 
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
@@ -194,3 +195,39 @@ def accuracy(output, target, topk=(1,)):
             correct_k = correct[:k].reshape(-1).float().sum(0, keepdim=True)
             res.append(correct_k.mul_(100.0 / batch_size))
         return res
+
+
+def get_stream_dataset(file_path):
+    sample_list = []
+    f = open(file_path, "r")
+    for line in f:
+        sample_list.append((line, 0))
+    return sample_list
+
+#def save_pseudolabels_txt(save_path):
+'''
+class PseudoDataset(DatasetFolder):
+    def __init__(self, file_path):
+        super.__init__()
+        self.file_path = file_path
+
+    def make_dataset(self):
+        sample_list = []
+        f = open(self.file_path, "r")
+        for line in f:
+            strings = line.replace("(", " ")
+            strings = strings.replace(")", " ")
+            strings = strings.split(" ")
+            sample_list.append((strings[0], int(strings[2])))
+        return sample_list
+'''
+
+def get_pseudo_dataset(file_path):
+    sample_list = []
+    f = open(file_path, "r")
+    for line in f:
+        strings = line.replace("(", " ")
+        strings = strings.replace(")", " ")
+        strings = strings.split(" ")
+        sample_list.append((strings[0], int(strings[2])))
+    return sample_list
