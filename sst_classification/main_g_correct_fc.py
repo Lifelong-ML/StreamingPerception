@@ -21,9 +21,13 @@ import torchvision.models as models
 import self_supervised
 
 from utils import get_scratch_folder_name, get_train_transform, get_test_transform, load_from_checkpoint, just_save_checkpoint, model_names, ProgressMeter, AverageMeter, adjust_learning_rate, accuracy
+from dataset_utils import PseudoDataset
 
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
+parser.add_argument('--data_txt', default=None, type=str)
+
+
 parser.add_argument('data', metavar='DIR',
                     help='path to (unlabeled) dataset')
 parser.add_argument('--ckpt_dir', default=None, type=str, metavar='PATH',
@@ -120,6 +124,7 @@ def main():
         main_worker(args.gpu, ngpus_per_node, args)
 
 def main_worker(gpu, ngpus_per_node, args):
+    print("main worker started", flush=True)
     ckpt_dir = get_scratch_folder_name(args)
 
     if not os.path.exists(ckpt_dir):
@@ -219,22 +224,29 @@ def main_worker(gpu, ngpus_per_node, args):
     cudnn.benchmark = True
 
     # Data loading code
-    traindir = os.path.join(args.data, 'train')
-    train_dataset = datasets.ImageFolder(
-        traindir,
-        get_train_transform()
-    )
-    
-    
+    if(args.data_txt==None):
+        print("Loading train data from directory", flush=True)
+        traindir = os.path.join(args.data, 'train')
+        train_dataset = datasets.ImageFolder(
+            traindir,
+            get_train_transform()
+        )
+    else:
+        print("Loading train data from txt", flush=True)
+        train_dataset = PseudoDataset(args.data_txt, transform = get_train_transform())
+
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
     else:
         train_sampler = None
 
+    print("making trainloader", flush=True)
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=args.workers, pin_memory=True, sampler=train_sampler)
 
+
+    print("starting training",flush=True)
     for epoch in range(start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
@@ -269,6 +281,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
     end = time.time()
     time_count = []
+
     for i, (images, target) in enumerate(train_loader):
         # measure data loading time
         end = time.time()
