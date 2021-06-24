@@ -3,11 +3,34 @@ server = "lml"
 class_data = "flowers"
 experiment = "flowers2"
 arch = "resnext50"
-stage = 1
+stage = 3
 data_path = "/mnt/Data/Streaming_Data/102flowers"
-stream_data_path = "/mnt/Data/Streaming_Data/imagenet/imagenet3M"
-resume = "/mnt/Data/Streaming_Data/flowers2/resnext50/init/resnext50_32x4d_scratch/checkpoint.state"
+stream_data_path = "/mnt/Data/Streaming_Data/imagenet/imagenet_512"
+resume = "/mnt/Data/Streaming_Data/flowers2/resnext50/pseudo_train/resnext50_32x4d_scratch/checkpoint.state"
 #resume = None
+data_txt = "/mnt/Data/Streaming_Data/flowers2/resnext50/resnet18_scratch.txt"
+
+
+'''
+server = "lml"
+class_data = "flowers"
+experiment = "minitest"
+arch = "resnext50"
+stage = 3
+data_path = "/mnt/Data/Streaming_Data/102flowers"
+stream_data_path = "/mnt/Data/Streaming_Data/imagenet/imagenet_512"
+#resume = "/mnt/Data/Streaming_Data/flowers2/resnext50/pseudo_train/resnext50_32x4d_scratch/checkpoint.state"
+resume = None
+data_txt = "/mnt/Data/Streaming_Data/minitest/resnext50/resnet18_scratch.txt"
+'''
+
+
+
+import os
+assert(os.path.isdir(data_path))
+assert(os.path.isdir(stream_data_path))
+if (resume != None):
+    assert(os.path.isfile(resume))
 
 
 mem_per_gpu = "32G"
@@ -83,6 +106,8 @@ def get_py_str():
         py_str += " --ckpt_dir " + dir_path + "/pseudo_train"
         if (resume!=None):
           py_str += " --resume " + resume
+        if(data_txt != None):
+          py_str += " --data_txt " + data_txt
     #Finetune
     elif (stage == 4):
         py_str += " main_gft_correct_fc.py"
@@ -104,6 +129,7 @@ def get_py_str():
         py_str += " --ckpt_dir " + dir_path + "/finetune"
         py_str += " --evaluate"
         py_str += " --finetuned_model " + dir_path + "/finetune/" + arch_name + "_finetuned/model_best.state"
+
     if (server == "lml"):
         py_str += " -b 128"
     return py_str

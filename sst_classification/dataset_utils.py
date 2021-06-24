@@ -19,10 +19,10 @@ class PseudoDataset(Dataset):
         image = Image.open(img_path)
 
         if(self.transform):
-          #print(np.shape(image))
+          if(len(np.shape(image)) < 3 or np.shape(image)[2] != 3):
+            #print("found weird image", flush=True)
+            image = image.convert(mode='RGB')
           image=self.transform(image)
-          #image=np.transpose(image, (0, 3, 2, 1))
-          #print(np.shape(image))
 
         return (image, target)
 

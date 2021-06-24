@@ -311,7 +311,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
         batch_time.update(time.time() - end)
         time_count += [time.time() - end]
         print(time.time() - end)
-        print(f"AVG: {sum(time_count)/len(time_count):.2f}")
+        print(f"AVG: {sum(time_count)/len(time_count):.2f}", flush=True)
         
 
         if i % args.print_freq == 0:
