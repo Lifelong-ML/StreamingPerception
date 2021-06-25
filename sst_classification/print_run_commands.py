@@ -1,28 +1,14 @@
 # choose parameters
-server = "lml"
+server = "gc"                  #should be "lml" or "gc"
 class_data = "flowers"
-experiment = "flowers2"
-arch = "resnext50"
+experiment = "f_small"
+arch = "resnet18"
 stage = 3
-data_path = "/mnt/Data/Streaming_Data/102flowers"
-stream_data_path = "/mnt/Data/Streaming_Data/imagenet/imagenet_512"
-resume = "/mnt/Data/Streaming_Data/flowers2/resnext50/pseudo_train/resnext50_32x4d_scratch/checkpoint.state"
+data_path = "/scratch/ssolit/102flowers"
+stream_data_path = "/home/ssolit/imagenet3M/"
+resume = "/scratch/ssolit/StreamingPerception/f_small/resnet18/init/resnet18_scratch/model_best.state"
 #resume = None
-data_txt = "/mnt/Data/Streaming_Data/flowers2/resnext50/resnet18_scratch.txt"
-
-
-'''
-server = "lml"
-class_data = "flowers"
-experiment = "minitest"
-arch = "resnext50"
-stage = 3
-data_path = "/mnt/Data/Streaming_Data/102flowers"
-stream_data_path = "/mnt/Data/Streaming_Data/imagenet/imagenet_512"
-#resume = "/mnt/Data/Streaming_Data/flowers2/resnext50/pseudo_train/resnext50_32x4d_scratch/checkpoint.state"
-resume = None
-data_txt = "/mnt/Data/Streaming_Data/minitest/resnext50/resnet18_scratch.txt"
-'''
+data_txt = "/scratch/ssolit/StreamingPerception/f_small/resnet18/resnet18_scratch.txt"
 
 
 
@@ -31,7 +17,8 @@ assert(os.path.isdir(data_path))
 assert(os.path.isdir(stream_data_path))
 if (resume != None):
     assert(os.path.isfile(resume))
-
+if(data_txt != None):
+    assert(os.path.isfile(data_txt))
 
 mem_per_gpu = "32G"
 cpus_per_gpu = "16"
@@ -83,9 +70,11 @@ def get_py_str():
         py_str += " " + data_path
         py_str += " --classes " + get_class_num()
         py_str += " --a " + arch_name
-        py_str += " --epochs 4000"
-        py_str += " --step 1500"
+        py_str += " --epochs 3000"
+        py_str += " --step 1200"
         py_str += " --ckpt_dir " + dir_path + "/init"
+        if (resume!=None):
+          py_str += " --resume " + resume
     #Pseudolabel
     elif (stage == 2):
         py_str += " generate_labels_correct_fc.py"
@@ -95,6 +84,8 @@ def get_py_str():
         py_str += " --data_save_dir " + dir_path
         if (resume!=None):
           py_str += " --resume " + resume
+        if(data_txt != None):
+          py_str += " --data_txt " + data_txt
     #Pseudo Train
     elif (stage == 3):
         py_str += " main_g_correct_fc.py"
