@@ -20,15 +20,15 @@ import torchvision.datasets as datasets
 import torchvision.models as models
 
 import self_supervised
-from torch.utils.tensorboard import SummaryWriter
-
 
 from utils import get_scratch_folder_name, get_selfsupervised_folder_name, get_imgpretrained_folder_name, get_train_transform, get_test_transform, load_from_checkpoint, save_checkpoint, save_all, model_names, ProgressMeter, AverageMeter, adjust_learning_rate, accuracy
 
+print(torch.__version__)
+from torch.utils.tensorboard import SummaryWriter
+
+
+
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-
-
-parser.add_argument('--log', default=None, type=str)
 
 
 parser.add_argument('data', metavar='DIR',
@@ -213,7 +213,7 @@ def main_worker(gpu, ngpus_per_node, args):
         start_epoch, model, optimizer = load_from_checkpoint(args.resume, model, optimizer)
 
     # Data loading code
-    print("starting Data loading code", flush=True)
+    print("Starting Data loading", flush=True)
     traindir = os.path.join(args.data, 'train')
     valdir = os.path.join(args.data, 'val')
     normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
@@ -229,12 +229,10 @@ def main_worker(gpu, ngpus_per_node, args):
     else:
         train_sampler = None
 
-    print("making trainloader", flush=True)
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=args.workers, pin_memory=True, sampler=train_sampler)
 
-    print("making val laoder", flush=True)
     val_loader = torch.utils.data.DataLoader(
         datasets.ImageFolder(valdir, get_test_transform()),
         batch_size=args.batch_size, shuffle=False,
@@ -263,9 +261,7 @@ def main_worker(gpu, ngpus_per_node, args):
     log_writer = SummaryWriter(log_path)
 
 
-
     print("starting training", flush=True)
-    print('start epoch:', start_epoch)
     for epoch in range(start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
@@ -273,7 +269,6 @@ def main_worker(gpu, ngpus_per_node, args):
 
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch, args)
-        print("train() finished", flush=True)
 
         if not args.multiprocessing_distributed or (args.multiprocessing_distributed
                 and args.rank % ngpus_per_node == 0):
@@ -281,13 +276,13 @@ def main_worker(gpu, ngpus_per_node, args):
                 # evaluate on validation set
                 acc1 = validate(val_loader, model, criterion, args)
 
-                # log progress using tensorboard
-                log_writer.add_scalar("acc1", acc1, epoch+1)
-                log_writer.flush()
-
                 # remember best acc@1 and save checkpoint
                 is_best = acc1 > best_acc1
                 best_acc1 = max(acc1, best_acc1)
+
+                # log progress using tensorboard
+                log_writer.add_scalar("acc1", acc1, epoch+1)
+                log_writer.flush()
 
                 save_all({
                 'epoch': epoch + 1,
@@ -300,19 +295,13 @@ def main_worker(gpu, ngpus_per_node, args):
             elif (epoch%10==9):
                 # evaluate on validation set
                 acc1 = validate(val_loader, model, criterion, args)
-                log_writer.add_scalar("acc1", acc1, epoch+1)
-                log_writer.flush()
 
-
-                if (args.log):
-                    log_line = str(epoch + 1) + "," + '{:.2f}'.format(acc1.item()) + '\n'
-                    f.write(log_line)
-                    f.flush()
-                    print("logged")
-
-                # remember best acc@1 and save checkpoint
                 is_best = acc1 > best_acc1
                 best_acc1 = max(acc1, best_acc1)
+
+                # log progress using tensorboard
+                log_writer.add_scalar("acc1", acc1, epoch+1)
+                log_writer.flush()
 
                 save_checkpoint({
                 'epoch': epoch + 1,
@@ -321,8 +310,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 'best_acc1': best_acc1,
                 'optimizer' : optimizer.state_dict(),
                 }, folder=scratch_folder)
-    if(args.log):
-        f.close()
+
     log_writer.close()
 
 

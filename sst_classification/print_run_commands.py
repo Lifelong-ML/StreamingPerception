@@ -23,7 +23,6 @@ stream_data_path = "/home/ssolit/imagenet3M/"
 #resume = '/scratch/ssolit/StreamingPerception/f_1M_init_testing/f_1M_init_test4/resnet18/init/resnet18_scratch/model_best.state'
 resume = None
 data_txt = '/scratch/ssolit/StreamingPerception/f_it4/resnext50/resnet18_scratch.txt'
-#log = '/scratch/ssolit/StreamingPerception/f_1M_init_test1/resnet18/init/train_log.txt'
 '''
 
 server = "gc"                  #should be "lml" or "gc"
@@ -36,7 +35,6 @@ stream_data_path = "/home/ssolit/imagenet3M/"
 resume = '/scratch/ssolit/StreamingPerception/f_it4p3/resnext101/pseudo_train/resnext101_32x8d_scratch/checkpoint.state'
 #resume = None
 data_txt = '/scratch/ssolit/StreamingPerception/f_it4p3/resnext101/resnext50_32x4d_scratch.txt'
-#log = '/scratch/ssolit/StreamingPerception/f_1M_init_test1/resnet18/init/train_log.txt'
 
 
 
@@ -105,7 +103,6 @@ def get_py_str():
         py_str += " --ckpt_dir " + dir_path + "/init"
         if (resume!=None):
           py_str += " --resume " + resume
-#        py_str += ' --log ' + log
     #Pseudolabel
     elif (stage == 2):
         py_str += " generate_labels_correct_fc.py"

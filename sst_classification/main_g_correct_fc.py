@@ -21,18 +21,14 @@ import torchvision.models as models
 import self_supervised
 
 from utils import get_scratch_folder_name, get_train_transform, get_test_transform, load_from_checkpoint, just_save_checkpoint, model_names, ProgressMeter, AverageMeter, adjust_learning_rate, accuracy
+
 from dataset_utils import PseudoDataset
-
-
 print(torch.__version__)
 from torch.utils.tensorboard import SummaryWriter
 
 
 
-
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
-parser.add_argument('--data_txt', default=None, type=str)
-
 
 parser.add_argument('data', metavar='DIR',
                     help='path to (unlabeled) dataset')
@@ -135,7 +131,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
     if not os.path.exists(ckpt_dir):
         os.makedirs(ckpt_dir)
-    
+
     args.gpu = gpu
 
     if args.gpu is not None:
@@ -221,7 +217,7 @@ def main_worker(gpu, ngpus_per_node, args):
     optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
-    
+
     # optionally resume from a checkpoint
     start_epoch = args.start_epoch
     if args.resume:
@@ -230,6 +226,7 @@ def main_worker(gpu, ngpus_per_node, args):
     cudnn.benchmark = True
 
     # Data loading code
+    print('starting data_loading', flush=True)
     if(args.data_txt==None):
         print("Loading train data from directory", flush=True)
         traindir = os.path.join(args.data, 'train')
@@ -246,7 +243,6 @@ def main_worker(gpu, ngpus_per_node, args):
     else:
         train_sampler = None
 
-    print("making trainloader", flush=True)
     train_loader = torch.utils.data.DataLoader(
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=args.workers, pin_memory=True, sampler=train_sampler)
@@ -254,7 +250,7 @@ def main_worker(gpu, ngpus_per_node, args):
     log_path = args.ckpt_dir + '/pseudo_train_log'
     log_writer = SummaryWriter(log_path)
 
-    print("starting training",flush=True)
+    print('starting training')
     for epoch in range(start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
@@ -320,7 +316,6 @@ def train(train_loader, model, criterion, optimizer, epoch, args, log_writer):
         time_count += [time.time() - end]
         print(time.time() - end)
         print(f"AVG: {sum(time_count)/len(time_count):.2f}", flush=True)
-        
 
         if i % args.print_freq == 0:
             progress.display(i)
@@ -338,4 +333,4 @@ def train(train_loader, model, criterion, optimizer, epoch, args, log_writer):
 if __name__ == '__main__':
     main()
 
-    
+

@@ -3,13 +3,12 @@ import shutil
 import argparse
 from tqdm import tqdm
 import torch
-import torch.nn as nn
 import torchvision.datasets as datasets
 import torchvision.models as models
 
 from utils import model_names, load_from_checkpoint, get_test_transform
+
 from dataset_utils import StreamDataset
-import numpy as np
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 
@@ -61,7 +60,7 @@ def main():
 
     # Data loading code
     # testdir = os.path.join(args.data, 'train')
-    
+
     if (args.data_txt == None):
         testdir = args.data
         testfilename = os.path.join(args.data_save_dir, f'{args.arch}_scratch.txt')
@@ -73,10 +72,9 @@ def main():
         copy_images(args.data_save_dir, testfilename)
         return
     else:
-        print("here1", flush=True)
         testfilename = os.path.join(args.data_save_dir, f'{args.arch}_scratch.txt')
         test_dataset = StreamDataset(args.data_txt, get_test_transform())
-        print("len =", len(test_dataset), flush=True)
+        print("Dataset length:", len(test_dataset), flush=True)
         validate_txt(test_dataset, testfilename, model)
         return
 
@@ -92,11 +90,11 @@ def validate_txt(test_dataset, testfilename, model, batch_size=64):
     else:
         f = open(testfilename, "w+")
         start = 0
-    
+
     # loader = torch.utils.data.DataLoader(
     #     test_dataset, batch_size=batch_size, shuffle=False,
     #     num_workers=4, pin_memory=True)
-    
+
     with torch.no_grad():
         print("in validate", flush=True)
         for i in tqdm(range(start, len(test_dataset))):
@@ -106,7 +104,7 @@ def validate_txt(test_dataset, testfilename, model, batch_size=64):
             image = image.cuda()
             # compute output
             output = model(image)
-            index_ = torch.argmax(output).cpu().numpy() 
+            index_ = torch.argmax(output).cpu().numpy()
             write_str = im_name + ' '+ repr(index_) + '\n'
             f.write(write_str)
         # for i, (images, _) in tqdm(enumerate(train_loader), total=len(train_loader), ncols=80):
@@ -121,8 +119,7 @@ def validate_txt(test_dataset, testfilename, model, batch_size=64):
 
     # with open(label_file, "w+") as f:
     #     with torch.no_grad():
-    #         # for i in tqdm(range(len(train_dataset)), ncols=80):
-            
+    #         # for i in tqdm(range(len(train_dataset)), ncols=80)
     #     for s in write_str:
     #         f.write(s)
 
