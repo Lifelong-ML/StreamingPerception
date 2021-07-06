@@ -10,21 +10,9 @@ stream_data_path = "/home/ssolit/imagenet3M/"
 #resume = '/scratch/ssolit/StreamingPerception/f_1M_init_testing/f_1M_init_test4/resnet18/init/resnet18_scratch/model_best.state'
 resume = None
 data_txt = '/scratch/ssolit/StreamingPerception/tiny_scratch/resnext50/resnet18_scratch.txt'
-
-
-# choose parameters
-server = "gc"                  #should be "lml" or "gc"
-class_data = "flowers"
-experiment = "f_it4"
-arch = "resnext50"
-stage = 4
-data_path = "/scratch/ssolit/102flowers"
-stream_data_path = "/home/ssolit/imagenet3M/"
-#resume = '/scratch/ssolit/StreamingPerception/f_1M_init_testing/f_1M_init_test4/resnet18/init/resnet18_scratch/model_best.state'
-resume = None
-data_txt = '/scratch/ssolit/StreamingPerception/f_it4/resnext50/resnet18_scratch.txt'
 '''
 
+'''
 server = "gc"                  #should be "lml" or "gc"
 class_data = "flowers"
 experiment = "f_it4p3"
@@ -35,12 +23,23 @@ stream_data_path = "/home/ssolit/imagenet3M/"
 resume = '/scratch/ssolit/StreamingPerception/f_it4p3/resnext101/pseudo_train/resnext101_32x8d_scratch/checkpoint.state'
 #resume = None
 data_txt = '/scratch/ssolit/StreamingPerception/f_it4p3/resnext101/resnext50_32x4d_scratch.txt'
+'''
+
+server = "gc"
+class_data = "flowers"
+experiment = "mini"
+arch = "resnet18"
+stage = 4
+data_path = "/scratch/ssolit/102flowers"
+resume = None
+resume = '/scratch/ssolit/StreamingPerception/mini/resnet18/pseudo_train/resnet18_scratch/checkpoint.state'
+data_txt = '/scratch/ssolit/data/imagenet_100_pics.txt'
 
 
 
 import os
 assert(os.path.isdir(data_path))
-assert(os.path.isdir(stream_data_path))
+# assert(os.path.isdir(stream_data_path))
 if (resume != None):
     assert(os.path.isfile(resume)), (resume + ' is not a valid filepath')
 if(data_txt != None):
@@ -91,7 +90,7 @@ def get_py_str():
       arch_name = "resnext50_32x4d"
     elif (arch == 'resnext101'):
       arch_name = 'resnext101_32x8d'
-    py_str = "python3"
+    py_str = "python"
     #initialize
     if (stage == 1):
         py_str += " main_correct_size.py"
@@ -106,7 +105,7 @@ def get_py_str():
     #Pseudolabel
     elif (stage == 2):
         py_str += " generate_labels_correct_fc.py"
-        py_str += " " + stream_data_path
+        py_str += " /scratch/ssolit/data/"
         py_str += " --classes " + get_class_num()
         py_str += " --a " + arch_name
         py_str += " --data_save_dir " + dir_path

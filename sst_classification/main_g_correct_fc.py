@@ -30,6 +30,8 @@ from torch.utils.tensorboard import SummaryWriter
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 
+parser.add_argument('--data_txt', default=None, type=str)
+
 parser.add_argument('data', metavar='DIR',
                     help='path to (unlabeled) dataset')
 parser.add_argument('--ckpt_dir', default=None, type=str, metavar='PATH',
@@ -257,7 +259,16 @@ def main_worker(gpu, ngpus_per_node, args):
         adjust_learning_rate(optimizer, epoch, args.lr, args.step)
 
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, args, log_writer)
+        loss, top1, fc_weight, fc_bias, fc_grad = train(train_loader, model, criterion, optimizer, epoch, args, log_writer)
+
+        #log to tensorboard
+        log_writer.add_scalar('loss', loss)
+        log_writer.add_scalar('acc1', top1)
+        log_writer.add_histogram('fc.weight', fc_weight, epoch)
+        log_writer.add_histogram('fc.bias', fc_bias, epoch)
+        log_writer.add_histogram('fc.weight.grad', fc_grad, epoch)
+        log_writer.flush()
+
 
         if not args.multiprocessing_distributed or (args.multiprocessing_distributed
                 and args.rank % ngpus_per_node == 0):
@@ -320,6 +331,8 @@ def train(train_loader, model, criterion, optimizer, epoch, args, log_writer):
         if i % args.print_freq == 0:
             progress.display(i)
 
+    return losses.avg, top1.avg, model.module.fc.weight, model.module.fc.bias, model.module.fc.weight.grad
+    '''
     #log to tensorboard
     log_writer.add_scalar('loss', losses.avg)
     log_writer.add_scalar('acc1', top1.avg)
@@ -327,7 +340,7 @@ def train(train_loader, model, criterion, optimizer, epoch, args, log_writer):
     log_writer.add_histogram('fc.bias', model.module.fc.bias, epoch)
     log_writer.add_histogram('fc.weight.grad', model.module.fc.weight.grad, epoch)
     log_writer.flush()
-
+    '''
 
 
 if __name__ == '__main__':
