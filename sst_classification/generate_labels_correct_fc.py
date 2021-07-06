@@ -1,4 +1,4 @@
-import os 
+import os
 import shutil
 import argparse
 from tqdm import tqdm
@@ -8,8 +8,13 @@ import torchvision.datasets as datasets
 import torchvision.models as models
 
 from utils import model_names, load_from_checkpoint, get_test_transform
+from dataset_utils import StreamDataset
+import numpy as np
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
+
+parser.add_argument('--data_txt', default=None, type=str)
+
 parser.add_argument('data', metavar='DIR',
                     help='path to (unlabeled) dataset')
 parser.add_argument('--data_save_dir', default=None, type=str, metavar='PATH',
@@ -33,6 +38,7 @@ parser.add_argument('-b', '--batch-size', default=256, type=int,
 
 
 def main():
+    print("in main", flush=-True)
     args = parser.parse_args()
 
     # create model
@@ -55,16 +61,24 @@ def main():
 
     # Data loading code
     # testdir = os.path.join(args.data, 'train')
-    testdir = args.data
-    testfilename = os.path.join(args.data_save_dir, f'{args.arch}_scratch.txt')
-    test_dataset = datasets.ImageFolder(
-        testdir,
-        get_test_transform()
-    )
-    validate_txt(test_dataset, testfilename, model)
-    copy_images(args.data_save_dir, testfilename)
-    return
-
+    
+    if (args.data_txt == None):
+        testdir = args.data
+        testfilename = os.path.join(args.data_save_dir, f'{args.arch}_scratch.txt')
+        test_dataset = datasets.ImageFolder(
+            testdir,
+            get_test_transform()
+        )
+        validate_txt(test_dataset, testfilename, model)
+        copy_images(args.data_save_dir, testfilename)
+        return
+    else:
+        print("here1", flush=True)
+        testfilename = os.path.join(args.data_save_dir, f'{args.arch}_scratch.txt')
+        test_dataset = StreamDataset(args.data_txt, get_test_transform())
+        print("len =", len(test_dataset), flush=True)
+        validate_txt(test_dataset, testfilename, model)
+        return
 
 def validate_txt(test_dataset, testfilename, model, batch_size=64):
     # switch to evaluate mode
@@ -84,13 +98,14 @@ def validate_txt(test_dataset, testfilename, model, batch_size=64):
     #     num_workers=4, pin_memory=True)
     
     with torch.no_grad():
+        print("in validate", flush=True)
         for i in tqdm(range(start, len(test_dataset))):
-            images, _ = test_dataset[i]
-            images = images.unsqueeze_(0)
-            im_name = test_dataset.imgs[i][0]
-            images = images.cuda()
+            image, im_name = test_dataset[i]
+            image = image.unsqueeze_(0) # makes tensor 4D to match expected input shape
+            #im_name = test_dataset.imgs[i][0]
+            image = image.cuda()
             # compute output
-            output = model(images)
+            output = model(image)
             index_ = torch.argmax(output).cpu().numpy() 
             write_str = im_name + ' '+ repr(index_) + '\n'
             f.write(write_str)
@@ -132,3 +147,4 @@ def copy_images(data_save_dir, testfilename):
 
 if __name__ == '__main__':
     main()
+

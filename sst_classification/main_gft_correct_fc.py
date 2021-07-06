@@ -24,6 +24,11 @@ import sys
 
 from utils import get_finetuned_folder_name, get_train_transform, get_test_transform, load_from_checkpoint, save_checkpoint, model_names, ProgressMeter, AverageMeter, adjust_learning_rate, accuracy
 
+print(torch.__version__)
+from torch.utils.tensorboard import SummaryWriter
+
+
+
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('data', metavar='DIR',
                     help='path to (labeled) dataset')
@@ -203,7 +208,7 @@ def main_worker(gpu, ngpus_per_node, args):
     if args.resume:
         start_epoch, model, optimizer = load_from_checkpoint(args.resume, model, optimizer)
     elif args.finetuned_model:
-        _, model, _ = load_from_checkpoint(args.finetuned_model, model, None)
+        start_epoch, model, _ = load_from_checkpoint(args.finetuned_model, model, None)
     else:
         print("No model supplied")
         exit(0)
@@ -244,7 +249,11 @@ def main_worker(gpu, ngpus_per_node, args):
         if not os.path.exists(finetuned_folder):
             os.makedirs(finetuned_folder)
 
+    log_path = args.ckpt_dir + '/finetune_log'
+    log_writer = SummaryWriter(log_path)
+
     print("Beginning training", flush=True)
+    print('start epoch:', start_epoch)
     for epoch in range(start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
@@ -262,6 +271,11 @@ def main_worker(gpu, ngpus_per_node, args):
 
         if (epoch%10==9) and not args.multiprocessing_distributed or (args.multiprocessing_distributed
                 and args.rank % ngpus_per_node == 0):
+
+            # log progress using tensorboard
+            log_writer.add_scalar("acc1", acc1, epoch+1)
+            log_writer.flush()
+
             save_checkpoint({
                 'epoch': epoch + 1,
                 'arch': args.arch,

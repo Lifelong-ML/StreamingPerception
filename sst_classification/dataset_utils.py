@@ -5,6 +5,42 @@ from torch.utils.data import Dataset
 from PIL import Image
 
 
+
+class StreamDataset(Dataset):
+    def __init__(self, file_path, transform=None):
+        self.file_path = file_path
+        self.sample_list = self.make_sample_list()
+        self.transform=transform
+
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
+            print("converting tensor to list", flush=True)
+            print(idx)
+            exit()
+        img_path = self.sample_list[idx].strip('\n')
+        image = Image.open(img_path)
+
+        if(self.transform):
+          if(len(np.shape(image)) < 3 or np.shape(image)[2] != 3):
+            #print("found weird image", flush=True)
+            image = image.convert(mode='RGB')
+          image=self.transform(image)
+
+        target = 0 #to just fill in teh structure
+        return (image, img_path)
+
+    def __len__(self):
+        return len(self.sample_list)
+
+    def make_sample_list(self):
+        sample_list = []
+        f = open(self.file_path, "r")
+        for line in f:
+            sample_list.append(line)
+        return sample_list
+
+
 class PseudoDataset(Dataset):
     def __init__(self, file_path, transform=None):
         self.file_path = file_path

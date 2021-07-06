@@ -24,6 +24,12 @@ from utils import get_scratch_folder_name, get_train_transform, get_test_transfo
 from dataset_utils import PseudoDataset
 
 
+print(torch.__version__)
+from torch.utils.tensorboard import SummaryWriter
+
+
+
+
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 parser.add_argument('--data_txt', default=None, type=str)
 
@@ -245,6 +251,8 @@ def main_worker(gpu, ngpus_per_node, args):
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=args.workers, pin_memory=True, sampler=train_sampler)
 
+    log_path = args.ckpt_dir + '/pseudo_train_log'
+    log_writer = SummaryWriter(log_path)
 
     print("starting training",flush=True)
     for epoch in range(start_epoch, args.epochs):
@@ -253,7 +261,7 @@ def main_worker(gpu, ngpus_per_node, args):
         adjust_learning_rate(optimizer, epoch, args.lr, args.step)
 
         # train for one epoch
-        train(train_loader, model, criterion, optimizer, epoch, args)
+        train(train_loader, model, criterion, optimizer, epoch, args, log_writer)
 
         if not args.multiprocessing_distributed or (args.multiprocessing_distributed
                 and args.rank % ngpus_per_node == 0):
@@ -265,7 +273,7 @@ def main_worker(gpu, ngpus_per_node, args):
             }, folder=ckpt_dir)
 
 
-def train(train_loader, model, criterion, optimizer, epoch, args):
+def train(train_loader, model, criterion, optimizer, epoch, args, log_writer):
     batch_time = AverageMeter('Time', ':6.3f')
     data_time = AverageMeter('Data', ':6.3f')
     losses = AverageMeter('Loss', ':.4e')
@@ -316,6 +324,15 @@ def train(train_loader, model, criterion, optimizer, epoch, args):
 
         if i % args.print_freq == 0:
             progress.display(i)
+
+    #log to tensorboard
+    log_writer.add_scalar('loss', losses.avg)
+    log_writer.add_scalar('acc1', top1.avg)
+    log_writer.add_histogram('fc.weight', model.module.fc.weight, epoch)
+    log_writer.add_histogram('fc.bias', model.module.fc.bias, epoch)
+    log_writer.add_histogram('fc.weight.grad', model.module.fc.weight.grad, epoch)
+    log_writer.flush()
+
 
 
 if __name__ == '__main__':

@@ -3,7 +3,7 @@ import torch
 import shutil
 import torchvision.transforms as transforms
 import torchvision.models as models
-#import torchvision.datasets.DatasetFolder as DatasetFolder
+import torchvision.datasets as datasets
 
 model_names = sorted(name for name in models.__dict__
     if name.islower() and not name.startswith("__")
@@ -29,7 +29,7 @@ def save_checkpoint(state, folder, filename='checkpoint.state'):
          print("old model is better")
 
 def save_all(state, folder, filename='checkpoint.state'):
-    recent_name = state["arch"] + "_checkpoint_e" + str(state["epoch"]) + ".state"
+    recent_name = state["arch"] + "_checkpoint_" + str(state["epoch"]).zfill(4) + ".state"
     torch.save(state, os.path.join(folder, recent_name))
 
     torch.save(state, os.path.join(folder, filename))
@@ -204,30 +204,4 @@ def get_stream_dataset(file_path):
         sample_list.append((line, 0))
     return sample_list
 
-#def save_pseudolabels_txt(save_path):
-'''
-class PseudoDataset(DatasetFolder):
-    def __init__(self, file_path):
-        super.__init__()
-        self.file_path = file_path
 
-    def make_dataset(self):
-        sample_list = []
-        f = open(self.file_path, "r")
-        for line in f:
-            strings = line.replace("(", " ")
-            strings = strings.replace(")", " ")
-            strings = strings.split(" ")
-            sample_list.append((strings[0], int(strings[2])))
-        return sample_list
-'''
-
-def get_pseudo_dataset(file_path):
-    sample_list = []
-    f = open(file_path, "r")
-    for line in f:
-        strings = line.replace("(", " ")
-        strings = strings.replace(")", " ")
-        strings = strings.split(" ")
-        sample_list.append((strings[0], int(strings[2])))
-    return sample_list

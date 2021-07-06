@@ -1,3 +1,4 @@
+print("starting imports", flush=True)
 import argparse
 import os
 import random
@@ -19,10 +20,17 @@ import torchvision.datasets as datasets
 import torchvision.models as models
 
 import self_supervised
+from torch.utils.tensorboard import SummaryWriter
+
 
 from utils import get_scratch_folder_name, get_selfsupervised_folder_name, get_imgpretrained_folder_name, get_train_transform, get_test_transform, load_from_checkpoint, save_checkpoint, save_all, model_names, ProgressMeter, AverageMeter, adjust_learning_rate, accuracy
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
+
+
+parser.add_argument('--log', default=None, type=str)
+
+
 parser.add_argument('data', metavar='DIR',
                     help='path to dataset')
 parser.add_argument('--ckpt_dir', default=None, type=str, metavar='PATH',
@@ -85,7 +93,7 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
 best_acc1 = 0
 
 def main():
-    print("manin() called", flush=True)
+    print("main() called", flush=True)
     args = parser.parse_args()
 
     if args.seed is not None:
@@ -248,7 +256,16 @@ def main_worker(gpu, ngpus_per_node, args):
         if not os.path.exists(scratch_folder):
             os.makedirs(scratch_folder)
 
+
+
+
+    log_path = args.ckpt_dir + '/exp_log'
+    log_writer = SummaryWriter(log_path)
+
+
+
     print("starting training", flush=True)
+    print('start epoch:', start_epoch)
     for epoch in range(start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
@@ -263,6 +280,10 @@ def main_worker(gpu, ngpus_per_node, args):
             if (epoch%100 == 99):
                 # evaluate on validation set
                 acc1 = validate(val_loader, model, criterion, args)
+
+                # log progress using tensorboard
+                log_writer.add_scalar("acc1", acc1, epoch+1)
+                log_writer.flush()
 
                 # remember best acc@1 and save checkpoint
                 is_best = acc1 > best_acc1
@@ -279,6 +300,15 @@ def main_worker(gpu, ngpus_per_node, args):
             elif (epoch%10==9):
                 # evaluate on validation set
                 acc1 = validate(val_loader, model, criterion, args)
+                log_writer.add_scalar("acc1", acc1, epoch+1)
+                log_writer.flush()
+
+
+                if (args.log):
+                    log_line = str(epoch + 1) + "," + '{:.2f}'.format(acc1.item()) + '\n'
+                    f.write(log_line)
+                    f.flush()
+                    print("logged")
 
                 # remember best acc@1 and save checkpoint
                 is_best = acc1 > best_acc1
@@ -291,6 +321,9 @@ def main_worker(gpu, ngpus_per_node, args):
                 'best_acc1': best_acc1,
                 'optimizer' : optimizer.state_dict(),
                 }, folder=scratch_folder)
+    if(args.log):
+        f.close()
+    log_writer.close()
 
 
 def train(train_loader, model, criterion, optimizer, epoch, args):
