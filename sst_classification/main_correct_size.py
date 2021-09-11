@@ -1,4 +1,4 @@
-print("starting imports", flush=True)
+print("first line print", flush=True)
 import argparse
 import os
 import random
@@ -312,6 +312,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 }, folder=scratch_folder)
 
     log_writer.close()
+    print(f"Saving to {scratch_folder}")
 
 
 def train(train_loader, model, criterion, optimizer, epoch, args):

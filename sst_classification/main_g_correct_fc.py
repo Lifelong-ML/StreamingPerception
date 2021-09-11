@@ -1,3 +1,4 @@
+print('first line print', flush=True)
 import argparse
 import os
 import random
@@ -262,8 +263,8 @@ def main_worker(gpu, ngpus_per_node, args):
         loss, top1, fc_weight, fc_bias, fc_grad = train(train_loader, model, criterion, optimizer, epoch, args, log_writer)
 
         #log to tensorboard
-        log_writer.add_scalar('loss', loss)
-        log_writer.add_scalar('acc1', top1)
+        log_writer.add_scalar('loss', loss, epoch)
+        #log_writer.add_scalar('acc1', top1, epoch)
         log_writer.add_histogram('fc.weight', fc_weight, epoch)
         log_writer.add_histogram('fc.bias', fc_bias, epoch)
         log_writer.add_histogram('fc.weight.grad', fc_grad, epoch)
@@ -279,6 +280,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 'optimizer' : optimizer.state_dict(),
             }, folder=ckpt_dir)
 
+    print('ckpt_dir:', ckpt_dir)
 
 def train(train_loader, model, criterion, optimizer, epoch, args, log_writer):
     batch_time = AverageMeter('Time', ':6.3f')

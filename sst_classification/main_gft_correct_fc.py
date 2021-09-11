@@ -261,11 +261,11 @@ def main_worker(gpu, ngpus_per_node, args):
         acc1 = validate(val_loader, model, criterion, args)
 
         # remember best acc@1 and save checkpoint
-        is_best = acc1 > best_acc1
-        best_acc1 = max(acc1, best_acc1)
-
         if (epoch%10==9) and not args.multiprocessing_distributed or (args.multiprocessing_distributed
                 and args.rank % ngpus_per_node == 0):
+
+            is_best = acc1 > best_acc1
+            best_acc1 = max(acc1, best_acc1)
 
             # log progress using tensorboard
             log_writer.add_scalar("acc1", acc1, epoch+1)
@@ -278,6 +278,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 'best_acc1': best_acc1,
                 'optimizer' : optimizer.state_dict(),
             }, folder=finetuned_folder)
+    print('finetuned_folder:', finetuned_folder)
 
 
 def train(train_loader, model, criterion, optimizer, epoch, args):

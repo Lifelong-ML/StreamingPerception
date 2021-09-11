@@ -1,61 +1,81 @@
-'''
-# choose parameters
-server = "gc"                  #should be "lml" or "gc"
-class_data = "flowers"
-experiment = "tiny_scratch"
-arch = "resnext50"
-stage = 3
-data_path = "/scratch/ssolit/102flowers"
-stream_data_path = "/home/ssolit/imagenet3M/"
-#resume = '/scratch/ssolit/StreamingPerception/f_1M_init_testing/f_1M_init_test4/resnet18/init/resnet18_scratch/model_best.state'
+eaton_compute = True
+
+
+
+
+experiment = 'arid+bike/p1'
+server = 'gc'
+class_data = 'arid'
+arch = 'resnet18'
+stage = 1
 resume = None
-data_txt = '/scratch/ssolit/StreamingPerception/tiny_scratch/resnext50/resnet18_scratch.txt'
-'''
+data_txt = '/scratch/ssolit/data/BikeVideo_txts/BikeVideo-30k-1.txt'
+eaton_compute = False
+
+
+
+
+
 
 '''
-server = "gc"                  #should be "lml" or "gc"
-class_data = "flowers"
-experiment = "f_it4p3"
-arch = "resnext101"
+experiment = 'fixed18_fixed7M/p1'
+server = 'gc'
+class_data = 'flowers'
+arch = 'resnet18'
 stage = 3
-data_path = "/scratch/ssolit/102flowers"
-stream_data_path = "/home/ssolit/imagenet3M/"
-resume = '/scratch/ssolit/StreamingPerception/f_it4p3/resnext101/pseudo_train/resnext101_32x8d_scratch/checkpoint.state'
-#resume = None
-data_txt = '/scratch/ssolit/StreamingPerception/f_it4p3/resnext101/resnext50_32x4d_scratch.txt'
+resume = '/scratch/ssolit/StreamingPerception/f_1M_init_testing/f_1M_init_test7/resnet18/init/resnet18_scratch/model_best.state'
+resume = None
+data_txt = '/scratch/ssolit/data/imagenet_137/imagenet7M.txt'
+data_txt = '/scratch/ssolit/StreamingPerception/fixed18_fixed7M/p1/resnet18_scratch.txt'
+eaton_compute = True
 '''
 
-server = "gc"
-class_data = "flowers"
-experiment = "mini"
-arch = "resnet18"
+'''
+experiment = 'CarSim_inits/p1'
+server = 'gc'
+class_data = 'flowers'
+arch = 'resnet18'
 stage = 4
-data_path = "/scratch/ssolit/102flowers"
-resume = None
-resume = '/scratch/ssolit/StreamingPerception/mini/resnet18/pseudo_train/resnet18_scratch/checkpoint.state'
-data_txt = '/scratch/ssolit/data/imagenet_100_pics.txt'
+resume = '/scratch/ssolit/StreamingPerception/CarSim_inits/p1-1/pseudo_train/resnet18_scratch/checkpoint.state'
+#resume = None
+data_txt = '/scratch/ssolit/data/CarSim_txts/CarSim_complete.txt'
+data_txt = '/scratch/ssolit/StreamingPerception/CarSim_inits/p1-1/resnet18_scratch.txt'
+eaton_compute = False
+'''
+
+
 
 
 
 import os
-assert(os.path.isdir(data_path))
-# assert(os.path.isdir(stream_data_path))
 if (resume != None):
     assert(os.path.isfile(resume)), (resume + ' is not a valid filepath')
 if(data_txt != None):
     assert(os.path.isfile(data_txt))
 
-mem_per_gpu = "64G"
-cpus_per_gpu = "16"
-gpus = "1"
-time = "24:00:00"
-qos = "eaton-high"
-partition = "eaton-compute"
-
+if (eaton_compute):
+  mem_per_gpu = "32G"
+  cpus_per_gpu = "16"
+  gpus = "1"
+  time = "24:00:00"
+  qos = "eaton-high"
+  partition = "eaton-compute"
+else:
+  mem_per_gpu = "16G"
+  cpus_per_gpu = "4"
+  gpus = "1"
+  time = "04:00:00"
+  qos = "low"
+  partition = "compute"
 
 
 def get_slurm_str():
     slurm_str = "srun"
+    slurm_str += " --begin=now"
+
+    cwd = os.getcwd()
+    slurm_str += " --exclude " + cwd + "/1080s"
+
     slurm_str += " --mem-per-gpu=" + mem_per_gpu
     slurm_str += " --cpus-per-gpu=" + cpus_per_gpu
     slurm_str += " --gpus=" + gpus
@@ -70,6 +90,8 @@ def get_class_num():
         class_num = "102"
     elif (class_data == "CUB"):
         class_num = "200"
+    elif (class_data == "arid"):
+        class_num = '51'
     else:
         print("Error: unrecognized class_data")
         exit(1)
@@ -78,13 +100,39 @@ def get_class_num():
 def get_dir_path():
     path = ""
     if (server == "gc"):
-        path += "/scratch/ssolit/StreamingPerception/" + experiment + "/" + arch
+        path += "/scratch/ssolit/StreamingPerception/" + experiment
     elif (server == "lml"):
-        path += "/mnt/Data/Streaming_Data/" + experiment + "/" + arch
+        path += "/mnt/Data/Streaming_Data/" + experiment
     return path
+
+def get_data_path():
+    path = ""
+    if (server == "gc"):
+        if (class_data == "flowers"):
+            path = "/scratch/ssolit/102flowers"
+        elif (class_data == "CUB"):
+            path = "/scratch/ssolit/CUB_links"
+        elif (class_data == "arid"):
+            path = "/scratch/ssolit/data/ARID_40k_crop_fewshot/"
+        else:
+            print("Error: unrecognized class_data")
+            exit(1)
+    else:
+        print("unimplemented")
+        exit(1)
+    return path
+
+def get_batch_str():
+  batch_str = ""
+  if (class_data == "flowers"):
+    batch_str += " -b 64 --lr=0.025"
+  elif (class_data == "CUB"):
+    batch_str += " -b 64 --lr=0.025"
+  return batch_str
 
 def get_py_str():
     dir_path = get_dir_path()
+    data_path = get_data_path()
     arch_name = arch
     if (arch == "resnext50"):
       arch_name = "resnext50_32x4d"
@@ -100,6 +148,8 @@ def get_py_str():
         py_str += " --epochs 3000"
         py_str += " --step 1200"
         py_str += " --ckpt_dir " + dir_path + "/init"
+        if not eaton_compute:
+          py_str += get_batch_str()
         if (resume!=None):
           py_str += " --resume " + resume
     #Pseudolabel
@@ -109,7 +159,8 @@ def get_py_str():
         py_str += " --classes " + get_class_num()
         py_str += " --a " + arch_name
         py_str += " --data_save_dir " + dir_path
-        if (resume!=None):
+
+        if(resume != None):
           py_str += " --resume " + resume
         if(data_txt != None):
           py_str += " --data_txt " + data_txt
@@ -122,10 +173,16 @@ def get_py_str():
         py_str += " --epochs 30"
         py_str += " --step 25"
         py_str += " --ckpt_dir " + dir_path + "/pseudo_train"
-        if (resume!=None):
-          py_str += " --resume " + resume
+        if not eaton_compute:
+          py_str += get_batch_str()
         if(data_txt != None):
           py_str += " --data_txt " + data_txt
+        future_resume = dir_path + "/pseudo_train/resnet18_scratch/checkpoint.state"
+        if not os.path.isfile(future_resume):
+            print('Warning: the following may be needed in future calls:')
+            print('--resume ' + future_resume + '\n')
+        else:
+            py_str += " --resume " + future_resume
     #Finetune
     elif (stage == 4):
         py_str += " main_gft_correct_fc.py"
@@ -135,9 +192,15 @@ def get_py_str():
         py_str += " --epochs 3000"
         py_str += " --step 1200"
         py_str += " --ckpt_dir " + dir_path + "/finetune"
-        py_str += " --finetuned_model " + dir_path + "/finetune/" + arch + "_finetuned/checkpoint.state"
+        if not eaton_compute:
+          py_str += get_batch_str()
+        future_finetuned_model = dir_path + "/finetune/" + arch_name + "_finetuned/checkpoint.state"
+        if not os.path.isfile(future_finetuned_model):
+            print('Warning: the following may be needed in future calls:')
+        print('--finetuned_model ' + future_finetuned_model + '\n')
+        py_str += " --finetuned_model " + resume
     #Evaluate
-    else:
+    elif (stage == 5):
         py_str += " main_gft_correct_fc.py"
         py_str += " " + data_path
         py_str += " --classes " + get_class_num()
@@ -145,11 +208,11 @@ def get_py_str():
         py_str += " --epochs 3000"
         py_str += " --step 1200"
         py_str += " --ckpt_dir " + dir_path + "/finetune"
+        if not eaton_compute:
+          py_str += get_batch_str()
         py_str += " --evaluate"
         py_str += " --finetuned_model " + dir_path + "/finetune/" + arch_name + "_finetuned/model_best.state"
 
-    if (server == "lml"):
-        py_str += " -b 128"
     return py_str
 
 final_str = ""

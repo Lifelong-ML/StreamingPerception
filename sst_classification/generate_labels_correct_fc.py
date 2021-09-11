@@ -1,3 +1,5 @@
+print('first line print', flush=True)
+
 import os
 import shutil
 import argparse
@@ -114,7 +116,7 @@ def validate_txt(test_dataset, testfilename, model, batch_size=64):
         #     pseudo_labels = pseudo_labels + index_
         #     write_str = write_str + [str(idx) + '\n' for idx in index_]
     f.close()
-
+    print(f"Writing to {testfilename}")
     # write_str = []
 
     # with open(label_file, "w+") as f:
