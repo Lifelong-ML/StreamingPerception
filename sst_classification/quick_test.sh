@@ -1,7 +1,0 @@
-srun --mem-per-gpu=32G --cpus-per-gpu=16 --gpus=1 --time=1:00:00 --qos=eaton-high --partition=eaton-compute python main_correct_size.py /scratch/ssolit/102flowers --classes 102 --a resnet18 --epochs 300 --step 100 --ckpt_dir /scratch/ssolit/StreamingPerception/mini/resnet18/init
-
-srun --mem-per-gpu=32G --cpus-per-gpu=16 --gpus=1 --time=1:00:00 --qos=eaton-high --partition=eaton-compute python generate_labels_correct_fc.py /scratch/ssolit/data/ --classes 102 --a resnet18 --data_save_dir /scratch/ssolit/StreamingPerception/mini/resnet18 --resume /scratch/ssolit/StreamingPerception/mini/resnet18/init/resnet18_scratch/model_best.state --data_txt /scratch/ssolit/data/imagenet_100_pics.txt
-
-srun --mem-per-gpu=32G --cpus-per-gpu=16 --gpus=1 --time=1:00:00 --qos=eaton-high --partition=eaton-compute python main_g_correct_fc.py /scratch/ssolit/StreamingPerception/mini/resnet18 --classes 102 --a resnet18 --epochs 30 --step 25 --ckpt_dir /scratch/ssolit/StreamingPerception/mini/resnet18/pseudo_train/ --data_txt /scratch/ssolit/StreamingPerception/mini/resnet18/resnet18_scratch.txt
-
-srun --mem-per-gpu=32G --cpus-per-gpu=16 --gpus=1 --time=1:00:00 --qos=eaton-high --partition=eaton-compute python main_gft_correct_fc.py /scratch/ssolit/102flowers --classes 102 --a resnet18 --epochs 300 --step 100 --ckpt_dir /scratch/ssolit/StreamingPerception/mini/resnet18/finetune --finetuned_model /scratch/ssolit/StreamingPerception/mini/resnet18/pseudo_train/resnet18_scratch/model_best.state
