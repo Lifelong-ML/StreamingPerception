@@ -1,9 +1,16 @@
-import os
 import torch
 import numpy as np
 from torch.utils.data import Dataset
 from PIL import Image
 
+import albumentations as alb
+from albumentations.augmentations.geometric.transforms import ShiftScaleRotate
+from albumentations.augmentations.transforms import ColorJitter, Superpixels, ToGray, GaussNoise
+from albumentations.augmentations.geometric.resize import Resize
+from albumentations.pytorch import ToTensorV2
+
+import random
+import cv2
 
 
 class StreamDataset(Dataset):
@@ -27,7 +34,7 @@ class StreamDataset(Dataset):
             image = image.convert(mode='RGB')
           image=self.transform(image)
 
-        target = 0 #to just fill in teh structure
+        #target = 0
         return (image, img_path)
 
     def __len__(self):
@@ -51,8 +58,8 @@ class PseudoDataset(Dataset):
         if torch.is_tensor(idx):
             idx = idx.tolist()
         img_path = self.sample_list[idx][0]
-        target =  self.sample_list[idx][1]
         image = Image.open(img_path)
+        target =  self.sample_list[idx][1]
 
         if(self.transform):
           if(len(np.shape(image)) < 3 or np.shape(image)[2] != 3):
@@ -75,71 +82,169 @@ class PseudoDataset(Dataset):
             sample_list.append((strings[0], int(strings[2])))
         return sample_list
 
-'''
-class PseudoDataset2(datasets.DatasetFolder):
-    def __init__(self, file_path, transform=None, target_transform=None, loader=default_loader):
-        super.__init__(root=None, loader=loader, transform=transform, target_transform=target_transform)
-        self.file_path = file_path
-        self.samples = self.make_dataset()
 
-    def make_dataset(self):
+class AugmentedStreamDataset(Dataset):
+    def __init__(self, file_path, transform=None):
+        self.file_path = file_path
+        self.base_transform=transform
+        self.sample_list = self.make_sample_list()
+        self.aug_list = self.make_aug_list()
+        self.debug_file = open('/scratch/ssolit/StreamingPerception/sst_augmentation/img_gen/gen_log.txt', 'w')
+
+    def __getitem__(self, idx):
+        base_idx, aug_id = divmod(idx, 32)
+        img_path = self.sample_list[base_idx].strip('\n')
+        image = cv2.imread(img_path)
+        # no target because we are pseudo-labelling
+
+        #create a random seed based on idx to get consistent transforms across stages
+        random.seed(idx)
+
+        #handle transforms
+        if(len(np.shape(image)) < 3 or np.shape(image)[2] != 3):
+          #print("found weird image", flush=True)
+          image = image.convert(mode='RGB')
+        image = self.aug_list[aug_id//8](image=image)['image']
+        ''' if (self.base_transform):
+            image=self.base_transform(image)
+        '''
+
+        self.debug_file.write('impath: ' + img_path +  '    aug_id: ' + str(aug_id) + '\n')
+        self.debug_file.write(repr(image))
+        self.debug_file.write('\n\n')
+
+        return (image, img_path, aug_id)
+
+    def __len__(self):
+        return len(self.sample_list * 32)
+
+    def make_sample_list(self):
         sample_list = []
         f = open(self.file_path, "r")
         for line in f:
-            strings = line.replace("(", " ")
-            strings = strings.replace(")", " ")
-            strings = strings.split(" ")
-            sample_list.append((strings[0], int(strings[2])))
+            sample_list.append(line)
         return sample_list
 
-    def find_classes(self, directory):
-        print("skipping class identification")
+    def make_aug_list(self):
+        # define transforms
+        rotate = ShiftScaleRotate(p=1)
+        jitter = ColorJitter(p=1)
+        supPix = Superpixels(p=1)
+        toGray = ToGray(p=1)
+        gaussNoise = GaussNoise(p=1)
 
-    def __getitem__(self, index):
-        """
-        Args:
-            index (int): Index
+        resize = Resize(224, 224, p=1)
+        normalize = alb.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
+        toTensor = ToTensorV2()
+        base = alb.Compose([resize, normalize, toTensor])
 
-        Returns:
-            tuple: (sample, target) where target is class_index of the target class.
-        """
-        path, target = self.samples[index]
-        sample = self.loader(path)
-        if self.transform is not None:
-            sample = self.transform(sample)
-        if self.target_transform is not None:
-            target = self.target_transform(target)
-
-        return sample, target
+        return [alb.Compose([rotate, base]),
+                alb.Compose([rotate, gaussNoise, base]),
+                alb.Compose([rotate, jitter, base]),
+                alb.Compose([rotate, toGray, base]),
+                alb.Compose([rotate, supPix, base]),
+                alb.Compose([rotate, gaussNoise, jitter, base]),
+                alb.Compose([rotate, gaussNoise, toGray, base]),
+                alb.Compose([rotate, gaussNoise, supPix, base])]
 
 
-    def __len__(self) -> int:
-        return len(self.samples)
 
-def load_func(line):
-    # a line in 'list.txt"
-    strings = line.replace("(", " ")        
-    strings = strings.replace(")", " ")
-    strings = strings.split(" ")
-    sample_list.append((strings[0], int(strings[2])))
-    return {'src': strings[0], 'target': strings[2]} 
 
-def batchify(batch):
-    # batch will contain a list of {'src', 'target'}, or how you return it in load_func.
+class AugmentedPseudoDataset(Dataset):
+    def __init__(self, file_path, transform=None):
+        self.file_path = file_path
+        self.sample_list = self.make_sample_list()
+        self.transform=transform
+        self.aug_list = self.make_aug_list()
+        self.debug_file = open('/scratch/ssolit/StreamingPerception/sst_augmentation/img_gen/s3_log.txt', 'w')
 
-    # Implement method to batch the list above into Tensor here
 
-    # assuming you already have two tensor containing batched Tensor for src and target
-    return {'src': batch_src, 'target': batch_target} # you can return a tuple or whatever you want it to
+    def __getitem__(self, idx):
+        if torch.is_tensor(idx):
+            idx = idx.tolist()
 
-def get_pseudo_dataset(file_path):
-    sample_list = []
-    f = open(file_path, "r")
-    for line in f:
-        strings = line.replace("(", " ")
-        strings = strings.replace(")", " ")
-        strings = strings.split(" ")
-        sample_list.append((strings[0], int(strings[2])))
-    return sample_list
+        base_idx, aug_id = divmod(idx, 32)
+        img_path = self.sample_list[idx][0]
+        image = cv2.imread(img_path)
+        aug_id = self.sample_list[idx][1]
+        target =  self.sample_list[idx][2]
 
-'''
+
+        #create a random seed based on idx to get consistent transforms across stages
+        random.seed(idx)
+
+        #handle transforms
+        if(len(np.shape(image)) < 3 or np.shape(image)[2] != 3):
+          #print("found weird image", flush=True)
+          image = image.convert(mode='RGB')
+        image = self.aug_list[aug_id//8](image=image)['image']
+        ''' if (self.base_transform):
+            image=self.base_transform(image)
+        '''
+
+        '''
+        print('here')
+        print(img_path)
+        '''
+
+        self.debug_file.write('impath: ' + img_path +  '    aug_id: ' + str(aug_id) + '\n')
+        self.debug_file.write(repr(image))
+        self.debug_file.write('\n\n')
+        self.debug_file.flush()
+
+
+        return (image, target)
+
+    def __len__(self):
+        return len(self.sample_list)
+
+    def make_sample_list(self):
+        sample_list = []
+        f = open(self.file_path, "r")
+        for line in f:
+            strings = line.split(' ')
+            sample_list.append((strings[0], int(strings[1]), int(strings[2])))
+        return sample_list
+
+    def make_aug_list(self):
+        # define transforms
+        rotate = ShiftScaleRotate(p=1)
+        jitter = ColorJitter(p=1)
+        supPix = Superpixels(p=1)
+        toGray = ToGray(p=1)
+        gaussNoise = GaussNoise(p=1)
+
+        resize = Resize(224, 224, p=1)
+        normalize = alb.Normalize(mean=[0.485, 0.456, 0.406],
+                                 std=[0.229, 0.224, 0.225])
+        toTensor = ToTensorV2()
+        base = alb.Compose([resize, normalize, toTensor])
+
+        return [alb.Compose([rotate, base]),
+                alb.Compose([rotate, gaussNoise, base]),
+                alb.Compose([rotate, jitter, base]),
+                alb.Compose([rotate, toGray, base]),
+                alb.Compose([rotate, supPix, base]),
+                alb.Compose([rotate, gaussNoise, jitter, base]),
+                alb.Compose([rotate, gaussNoise, toGray, base]),
+                alb.Compose([rotate, gaussNoise, supPix, base])]
+
+
+
+
+
+
+
+
+    '''
+    def set_seed(self, seed):
+        # This might not work unless in the DataLoader(), num_workers = 0
+        torch.backends.cudnn.deterministic = True
+        torch.backends.cudnn.benchmark = False
+        torch.manual_seed(seed)
+        torch.cuda.manual_seed_all(seed)
+        np.random.seed(seed)
+        random.seed(seed)
+    '''
+

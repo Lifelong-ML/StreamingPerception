@@ -17,5 +17,9 @@ model = load(model_path, map_location='cpu')
 
 print('model path:', model_path)
 print('model epoch:', model['epoch'])
-print('best acc1:  ', model['best_acc1'])
+print('best val acc1:  ', model['best_val_acc1'])
 
+try:
+    print('best test acc1:  ', model['best_test_acc1'])
+except:
+    print('No test acc1 recorded')

@@ -18,8 +18,8 @@ def save_checkpoint(state, folder, filename='checkpoint.state'):
     best_ckpt = os.path.join(folder, 'model_best.state')
 
     if os.path.exists(best_ckpt):
-        best = torch.load(best_ckpt)['best_acc1']
-        is_best = best < state['best_acc1']
+        best = torch.load(best_ckpt)['best_val_acc1']
+        is_best = best < state['best_val_acc1']
     else:
         is_best = True
     if is_best:
@@ -36,8 +36,8 @@ def save_all(state, folder, filename='checkpoint.state'):
     best_ckpt = os.path.join(folder, 'model_best.state')
 
     if os.path.exists(best_ckpt):
-        best = torch.load(best_ckpt)['best_acc1']
-        is_best = best < state['best_acc1']
+        best = torch.load(best_ckpt)['best_val_acc1']
+        is_best = best < state['best_val_acc1']
     else:
         is_best = True
     if is_best:
