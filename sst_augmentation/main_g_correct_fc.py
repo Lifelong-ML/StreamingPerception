@@ -23,7 +23,7 @@ import self_supervised
 
 from utils import get_scratch_folder_name, get_train_transform, get_test_transform, load_from_checkpoint, just_save_checkpoint, model_names, ProgressMeter, AverageMeter, adjust_learning_rate, accuracy
 
-from dataset_utils import PseudoDataset
+from dataset_utils import AugmentedPseudoDataset
 print(torch.__version__)
 from torch.utils.tensorboard import SummaryWriter
 
@@ -239,7 +239,7 @@ def main_worker(gpu, ngpus_per_node, args):
         )
     else:
         print("Loading train data from txt", flush=True)
-        train_dataset = PseudoDataset(args.data_txt, transform = get_train_transform())
+        train_dataset = AugmentedPseudoDataset(args.data_txt, transform = get_train_transform())
 
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
@@ -280,7 +280,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 'optimizer' : optimizer.state_dict(),
             }, folder=ckpt_dir)
 
-    print('ckpt:', os.path.join(ckpt_dir, 'checkpoint.state'))
+    print('ckpt_dir:', ckpt_dir)
 
 def train(train_loader, model, criterion, optimizer, epoch, args, log_writer):
     batch_time = AverageMeter('Time', ':6.3f')

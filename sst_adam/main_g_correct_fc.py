@@ -48,8 +48,6 @@ parser.add_argument('--classes', default=1000, type=int, metavar='N',
                     help='number of total classes for the experiment')
 parser.add_argument('--epochs', default=30, type=int, metavar='N',
                     help='number of total epochs to run')
-parser.add_argument('--step', default=25, type=int, metavar='N',
-                    help='number of epochs till we lower the lr by 0.1')
 parser.add_argument('--start-epoch', default=0, type=int, metavar='N',
                     help='manual epoch number (useful on restarts)')
 parser.add_argument('-b', '--batch-size', default=256, type=int,
@@ -57,7 +55,7 @@ parser.add_argument('-b', '--batch-size', default=256, type=int,
                     help='mini-batch size (default: 256), this is the total '
                          'batch size of all GPUs on the current node when '
                          'using Data Parallel or Distributed Data Parallel')
-parser.add_argument('--lr', '--learning-rate', default=0.1, type=float,
+parser.add_argument('--lr', '--learning-rate', default=0.001, type=float,
                     metavar='LR', help='initial learning rate', dest='lr')
 parser.add_argument('--momentum', default=0.9, type=float, metavar='M',
                     help='momentum')
@@ -217,9 +215,9 @@ def main_worker(gpu, ngpus_per_node, args):
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda(args.gpu)
 
-    optimizer = torch.optim.SGD(model.parameters(), args.lr,
-                                momentum=args.momentum,
-                                weight_decay=args.weight_decay)
+    optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+
+
 
     # optionally resume from a checkpoint
     start_epoch = args.start_epoch
@@ -257,7 +255,6 @@ def main_worker(gpu, ngpus_per_node, args):
     for epoch in range(start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
-        adjust_learning_rate(optimizer, epoch, args.lr, args.step)
 
         # train for one epoch
         loss, top1, fc_weight, fc_bias, fc_grad = train(train_loader, model, criterion, optimizer, epoch, args, log_writer)
@@ -280,7 +277,7 @@ def main_worker(gpu, ngpus_per_node, args):
                 'optimizer' : optimizer.state_dict(),
             }, folder=ckpt_dir)
 
-    print('ckpt:', os.path.join(ckpt_dir, 'checkpoint.state'))
+    print('ckpt_dir:', ckpt_dir)
 
 def train(train_loader, model, criterion, optimizer, epoch, args, log_writer):
     batch_time = AverageMeter('Time', ':6.3f')

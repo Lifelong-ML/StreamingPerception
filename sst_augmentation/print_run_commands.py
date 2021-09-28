@@ -1,30 +1,11 @@
 eaton_compute = True
 
-
-experiment = 'cifar+imagenet/p2'
-server = 'gc'
-class_data = 'cifar'
-arch = 'resnet18'
-optimizer = 'SVG'
-augment = False
-stage = 4
-resume = '/scratch/ssolit/StreamingPerception/cifar+imagenet/p2/pseudo_train/resnet18_scratch/checkpoint.state'
-#resume = None
-data_txt = '/scratch/ssolit/data/imagenet_fixed1M/imagenet1M-2.txt'
-data_txt = '/scratch/ssolit/StreamingPerception/cifar+imagenet/p2/resnet18_scratch.txt'
-#eaton_compute = False
-
-
-
-
 import os
 if (resume != None):
     assert(os.path.isfile(resume)), (resume + ' is not a valid filepath')
 if(data_txt != None):
     assert(os.path.isfile(data_txt))
 
-
-# define parameters known from given parameters
 if (eaton_compute):
   mem_per_gpu = "32G"
   cpus_per_gpu = "16"
@@ -41,17 +22,6 @@ else:
   partition = "compute"
 
 
-if (optimizer = 'svg'):
-  lr = 0.025
-elif (optimizer == 'adam'):
-  lr = 0.001
-else:
-    print("Error: unrecognized class_data")
-    exit(1)
-
-
-
-#functions to command string
 def get_slurm_str():
     slurm_str = "srun"
     slurm_str += " --begin=now"
@@ -110,7 +80,7 @@ def get_data_path():
     return path
 
 def get_batch_str():
-  return " -b 64 --lr=" + lr
+    return " -b 64 --lr=0.025"
 
 def get_py_str():
     dir_path = get_dir_path()
@@ -127,7 +97,6 @@ def get_py_str():
         py_str += " " + data_path
         py_str += " --classes " + get_class_num()
         py_str += " --a " + arch_name
-        py_str += " --optimizer = " + optimizer
         py_str += " --epochs 3000"
         py_str += " --step 1200"
         py_str += " --ckpt_dir " + dir_path + "/init"
@@ -142,8 +111,6 @@ def get_py_str():
         py_str += " --a " + arch_name
         py_str += " --data_save_dir " + dir_path
 
-        if(augment):
-          py_str += " --aug=True"
         if(resume != None):
           py_str += " --resume " + resume
         if(data_txt != None):
@@ -154,16 +121,12 @@ def get_py_str():
         py_str += " " + get_dir_path()
         py_str += " --classes " + get_class_num()
         py_str += " --a " + arch_name
-        py_str += " --optimizer = " + optimizer
         py_str += " --epochs 30"
         py_str += " --step 25"
         py_str += " --ckpt_dir " + dir_path + "/pseudo_train"
         py_str += get_batch_str()
-
         if(data_txt != None):
           py_str += " --data_txt " + data_txt
-        if(augment):
-          py_str += " --aug=True"
         future_resume = dir_path + "/pseudo_train/resnet18_scratch/checkpoint.state"
         if not os.path.isfile(future_resume):
             print('Warning: the following may be needed in future calls:')
@@ -176,7 +139,6 @@ def get_py_str():
         py_str += " " + data_path
         py_str += " --classes " + get_class_num()
         py_str += " --a " + arch_name
-        py_str += " --optimizer = " + optimizer
         py_str += " --epochs 3000"
         py_str += " --step 1200"
         py_str += " --ckpt_dir " + dir_path + "/finetune"
@@ -187,7 +149,6 @@ def get_py_str():
         print('--finetuned_model ' + future_finetuned_model + '\n')
         py_str += " --finetuned_model " + resume
     #Evaluate
-    '''
     elif (stage == 5):
         py_str += " main_gft_correct_fc.py"
         py_str += " " + data_path
@@ -199,10 +160,9 @@ def get_py_str():
         py_str += get_batch_str()
         py_str += " --evaluate"
         py_str += " --finetuned_model " + dir_path + "/finetune/" + arch_name + "_finetuned/model_best.state"
-    '''
+
     return py_str
 
-#main()
 final_str = ""
 if (server == "gc"):
     final_str += get_slurm_str() + " "
