@@ -4,6 +4,7 @@ import os
 import random
 import time
 import warnings
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -205,7 +206,7 @@ def main_worker(gpu, ngpus_per_node, args):
         optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
-    elif (args.optimizr == 'adam'):
+    elif (args.optimizer == 'adam'):
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     else:
         raise ValueError('unrecognized/unimplimented optimizer')
@@ -270,7 +271,7 @@ def main_worker(gpu, ngpus_per_node, args):
 
 
 
-    log_path = args.ckpt_dir + '/finetune_log'
+    log_path = os.path.join(Path(args.ckpt_dir).parent.parent.absolute(), 'compiled_tb_logs', args.ckpt_dir.split('/')[-1], 'init_log')
     log_writer = SummaryWriter(log_path)
 
     print("Beginning training", flush=True)

@@ -89,7 +89,6 @@ class AugmentedStreamDataset(Dataset):
         self.base_transform=transform
         self.sample_list = self.make_sample_list()
         self.aug_list = self.make_aug_list()
-        self.debug_file = open('/scratch/ssolit/StreamingPerception/sst_augmentation/img_gen/gen_log.txt', 'w')
 
     def __getitem__(self, idx):
         base_idx, aug_id = divmod(idx, 32)
@@ -108,10 +107,6 @@ class AugmentedStreamDataset(Dataset):
         ''' if (self.base_transform):
             image=self.base_transform(image)
         '''
-
-        self.debug_file.write('impath: ' + img_path +  '    aug_id: ' + str(aug_id) + '\n')
-        self.debug_file.write(repr(image))
-        self.debug_file.write('\n\n')
 
         return (image, img_path, aug_id)
 
@@ -157,7 +152,6 @@ class AugmentedPseudoDataset(Dataset):
         self.sample_list = self.make_sample_list()
         self.transform=transform
         self.aug_list = self.make_aug_list()
-        self.debug_file = open('/scratch/ssolit/StreamingPerception/sst_augmentation/img_gen/s3_log.txt', 'w')
 
 
     def __getitem__(self, idx):
@@ -182,18 +176,6 @@ class AugmentedPseudoDataset(Dataset):
         ''' if (self.base_transform):
             image=self.base_transform(image)
         '''
-
-        '''
-        print('here')
-        print(img_path)
-        '''
-
-        self.debug_file.write('impath: ' + img_path +  '    aug_id: ' + str(aug_id) + '\n')
-        self.debug_file.write(repr(image))
-        self.debug_file.write('\n\n')
-        self.debug_file.flush()
-
-
         return (image, target)
 
     def __len__(self):

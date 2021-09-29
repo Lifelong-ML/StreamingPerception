@@ -4,6 +4,7 @@ import os
 import random
 import time
 import warnings
+from pathlib import Path
 
 import torch
 import torch.nn as nn
@@ -99,7 +100,10 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
 def main():
     print("in main", flush=-True)
     args = parser.parse_args()
-    print('args.aug = ' + str(args.aug))
+    if (args.aug):
+        print('args.aug = True')
+    else:
+        print('args.aug = False')
 
     if args.seed is not None:
         random.seed(args.seed)
@@ -225,7 +229,7 @@ def main_worker(gpu, ngpus_per_node, args):
         optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
-    elif (args.optimizr == 'adam'):
+    elif (args.optimizer == 'adam'):
         optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
     else:
         raise ValueError('unrecognized/unimplimented optimizer')
@@ -264,7 +268,7 @@ def main_worker(gpu, ngpus_per_node, args):
         train_dataset, batch_size=args.batch_size, shuffle=(train_sampler is None),
         num_workers=args.workers, pin_memory=True, sampler=train_sampler)
 
-    log_path = args.ckpt_dir + '/pseudo_train_log'
+    log_path = os.path.join(Path(args.ckpt_dir).parent.parent.absolute(), 'compiled_tb_logs', args.ckpt_dir.split('/')[-2], 'pseudo_train_log')
     log_writer = SummaryWriter(log_path)
 
     print('starting training')

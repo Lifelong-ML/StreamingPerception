@@ -44,7 +44,10 @@ parser.add_argument('-b', '--batch-size', default=256, type=int,
 def main():
     args = parser.parse_args()
     print("in main", flush=-True)
-    print('args.aug = ' + str(args.aug))
+    if (args.aug):
+        print('args.aug = True')
+    else:
+        print('args.aug = False')
 
     # create model
     model = models.__dict__[args.arch]()

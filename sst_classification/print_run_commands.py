@@ -2,23 +2,34 @@ eaton_compute = True
 
 
 
-experiment = 'scratch_test'
+experiment = 'scratch_test/p1'
 server = 'gc'
 class_data = 'arid'
+arch = 'resnet18'
+optimizer = 'adam'
+augment = True
+stage = 4
+#resume = '/scratch/ssolit/StreamingPerception/scratch_test/p0/init/resnet18_scratch/model_best.state'
+resume = None
+resume = '/scratch/ssolit/StreamingPerception/scratch_test/p1/pseudo_train/resnet18_scratch/checkpoint.state'
+data_txt = '/scratch/ssolit/data/imagenet_100_pics.txt'
+data_txt = '/scratch/ssolit/StreamingPerception/scratch_test/p1/resnet18_scratch.txt'
+eaton_compute = False
+
+
+'''
+experiment = 'f_resnet18_lrReset/p4'
+server = 'gc'
+class_data = 'flowers'
 arch = 'resnet18'
 optimizer = 'svg'
 augment = False
 stage = 4
-resume = '/scratch/ssolit/StreamingPerception/scratch_test/pseudo_train/resnet18_scratch/checkpoint.state'
+resume = '/scratch/ssolit/StreamingPerception/f_resnet18_lrReset/p4/ereset_model_best.state'
 #resume = None
-data_txt = '/scratch/ssolit/data/imagenet_100_pics.txt'
-data_txt = '/scratch/ssolit/StreamingPerception/scratch_test/resnet18_scratch.txt'
-eaton_compute = False
-
-
-
-
-
+data_txt = '/scratch/ssolit/data/imagenet_137/imagenet7M.txt'
+#eaton_compute = False
+'''
 
 
 import os
@@ -133,7 +144,8 @@ def get_py_str():
         py_str += " --arch " + arch_name
         py_str += " --optimizer " + optimizer
         py_str += " --epochs 3000"
-        py_str += " --step 1200"
+        if (optimizer == 'svg'):
+            py_str += " --step 1200"
         py_str += " --ckpt_dir " + dir_path + "/init"
         py_str += get_batch_str()
         if (resume!=None):
@@ -160,7 +172,8 @@ def get_py_str():
         py_str += " --arch " + arch_name
         py_str += " --optimizer " + optimizer
         py_str += " --epochs 30"
-        py_str += " --step 25"
+        if (optimizer == 'svg'):
+            py_str += " --step 25"
         py_str += " --ckpt_dir " + dir_path + "/pseudo_train"
         py_str += get_batch_str()
 
@@ -182,7 +195,8 @@ def get_py_str():
         py_str += " --arch " + arch_name
         py_str += " --optimizer " + optimizer
         py_str += " --epochs 3000"
-        py_str += " --step 1200"
+        if (optimizer == 'svg'):
+            py_str += " --step 1200"
         py_str += " --ckpt_dir " + dir_path + "/finetune"
         py_str += get_batch_str()
         future_finetuned_model = dir_path + "/finetune/" + arch_name + "_finetuned/checkpoint.state"
