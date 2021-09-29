@@ -2,7 +2,6 @@ print('first line print', flush=True)
 import argparse
 import os
 import random
-import shutil
 import time
 import warnings
 
@@ -15,7 +14,6 @@ import torch.optim
 import torch.multiprocessing as mp
 import torch.utils.data
 import torch.utils.data.distributed
-import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 
@@ -24,6 +22,7 @@ import self_supervised
 from utils import get_scratch_folder_name, get_train_transform, get_test_transform, load_from_checkpoint, just_save_checkpoint, model_names, ProgressMeter, AverageMeter, adjust_learning_rate, accuracy
 
 from dataset_utils import PseudoDataset
+from dataset_utils import AugmentedPseudoDataset
 print(torch.__version__)
 from torch.utils.tensorboard import SummaryWriter
 
@@ -32,12 +31,15 @@ from torch.utils.tensorboard import SummaryWriter
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 
 parser.add_argument('--data_txt', default=None, type=str)
+parser.add_argument('--optimizer', default=None, type=str)
+parser.add_argument('--aug', default=False, type=bool)
+
 
 parser.add_argument('data', metavar='DIR',
                     help='path to (unlabeled) dataset')
 parser.add_argument('--ckpt_dir', default=None, type=str, metavar='PATH',
                     help='saving directory (default: none).')
-parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
+parser.add_argument('--arch', metavar='ARCH', default='resnet18',
                     choices=model_names,
                     help='model architecture: ' +
                         ' | '.join(model_names) +
@@ -95,7 +97,9 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'multi node data parallel training')
 
 def main():
+    print("in main", flush=-True)
     args = parser.parse_args()
+    print('args.aug = ' + str(args.aug))
 
     if args.seed is not None:
         random.seed(args.seed)
@@ -217,9 +221,14 @@ def main_worker(gpu, ngpus_per_node, args):
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda(args.gpu)
 
-    optimizer = torch.optim.SGD(model.parameters(), args.lr,
+    if (args.optimizer == 'svg'):
+        optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
+    elif (args.optimizr == 'adam'):
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    else:
+        raise ValueError('unrecognized/unimplimented optimizer')
 
     # optionally resume from a checkpoint
     start_epoch = args.start_epoch
@@ -238,8 +247,13 @@ def main_worker(gpu, ngpus_per_node, args):
             get_train_transform()
         )
     else:
-        print("Loading train data from txt", flush=True)
-        train_dataset = PseudoDataset(args.data_txt, transform = get_train_transform())
+        if (args.aug):
+            print("Loading augmented train data from txt", flush=True)
+            train_dataset = AugmentedPseudoDataset(args.data_txt, transform = get_train_transform())
+        else:
+            print("Loading train data from txt", flush=True)
+            train_dataset = PseudoDataset(args.data_txt, transform = get_train_transform())
+    print('Train Dataset Size: ' + str(len(train_dataset)))
 
     if args.distributed:
         train_sampler = torch.utils.data.distributed.DistributedSampler(train_dataset)
@@ -257,7 +271,8 @@ def main_worker(gpu, ngpus_per_node, args):
     for epoch in range(start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
-        adjust_learning_rate(optimizer, epoch, args.lr, args.step)
+        if (args.optimizer == 'svg'):
+            adjust_learning_rate(optimizer, epoch, args.lr, args.step)
 
         # train for one epoch
         loss, top1, fc_weight, fc_bias, fc_grad = train(train_loader, model, criterion, optimizer, epoch, args, log_writer)

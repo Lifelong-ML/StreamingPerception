@@ -11,10 +11,13 @@ import torchvision.models as models
 from utils import model_names, load_from_checkpoint, get_test_transform
 
 from dataset_utils import StreamDataset
+from dataset_utils import AugmentedStreamDataset
+
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
 
 parser.add_argument('--data_txt', default=None, type=str)
+parser.add_argument('--aug', default=False, type=bool)
 
 parser.add_argument('data', metavar='DIR',
                     help='path to (unlabeled) dataset')
@@ -24,7 +27,7 @@ parser.add_argument('--classes', default=1000, type=int, metavar='N',
                     help='number of total classes for the experiment')
 parser.add_argument('--resume', default=None, type=str, metavar='PATH',
                     help='path to latest checkpoint (default: none)')
-parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
+parser.add_argument('--arch', metavar='ARCH', default='resnet18',
                     choices=model_names,
                     help='model architecture: ' +
                         ' | '.join(model_names) +
@@ -39,8 +42,9 @@ parser.add_argument('-b', '--batch-size', default=256, type=int,
 
 
 def main():
-    print("in main", flush=-True)
     args = parser.parse_args()
+    print("in main", flush=-True)
+    print('args.aug = ' + str(args.aug))
 
     # create model
     model = models.__dict__[args.arch]()
@@ -75,12 +79,15 @@ def main():
         return
     else:
         testfilename = os.path.join(args.data_save_dir, f'{args.arch}_scratch.txt')
-        test_dataset = StreamDataset(args.data_txt, get_test_transform())
+        if (args.aug):
+            test_dataset = AugmentedStreamDataset(args.data_txt, get_test_transform())
+        else:
+            test_dataset = StreamDataset(args.data_txt, get_test_transform())
         print("Dataset length:", len(test_dataset), flush=True)
-        validate_txt(test_dataset, testfilename, model)
+        validate_txt(test_dataset, testfilename, model, args)
         return
 
-def validate_txt(test_dataset, testfilename, model, batch_size=64):
+def validate_txt(test_dataset, testfilename, model, args, batch_size=64):
     # switch to evaluate mode
     model.eval()
     print(f"Writing to {testfilename}")
@@ -100,21 +107,28 @@ def validate_txt(test_dataset, testfilename, model, batch_size=64):
     with torch.no_grad():
         print("in validate", flush=True)
         for i in tqdm(range(start, len(test_dataset))):
-            image, im_name = test_dataset[i]
+            if (args.aug):
+                image, im_name, aug_id = test_dataset[i]
+            else:
+                image, im_name = test_dataset[i]
+
+            if (args.aug):
+                image, im_name, aug_id = test_dataset[i]
+            else:
+                image, im_name = test_dataset[i]
+
             image = image.unsqueeze_(0) # makes tensor 4D to match expected input shape
-            #im_name = test_dataset.imgs[i][0]
             image = image.cuda()
             # compute output
             output = model(image)
             index_ = torch.argmax(output).cpu().numpy()
-            write_str = im_name + ' '+ repr(index_) + '\n'
+
+            if (args.aug):
+                write_str = im_name + ' ' + str(aug_id) + ' ' + str(index_.item()) + '\n'
+            else:
+                write_str = im_name + ' '+ repr(index_) + '\n'
             f.write(write_str)
-        # for i, (images, _) in tqdm(enumerate(train_loader), total=len(train_loader), ncols=80):
-        #     images = images.cuda()
-        #     outputs = model(images)
-        #     index_ = torch.argmax(outputs, dim=1).tolist()
-        #     pseudo_labels = pseudo_labels + index_
-        #     write_str = write_str + [str(idx) + '\n' for idx in index_]
+
     f.close()
     print(f"Writing to {testfilename}")
     # write_str = []

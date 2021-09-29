@@ -4,7 +4,6 @@ print("first line print", flush=True)
 import argparse
 import os
 import random
-import shutil
 import time
 import warnings
 
@@ -17,7 +16,6 @@ import torch.optim
 import torch.multiprocessing as mp
 import torch.utils.data
 import torch.utils.data.distributed
-import torchvision.transforms as transforms
 import torchvision.datasets as datasets
 import torchvision.models as models
 import sys
@@ -30,11 +28,14 @@ from torch.utils.tensorboard import SummaryWriter
 
 
 parser = argparse.ArgumentParser(description='PyTorch ImageNet Training')
+
+parser.add_argument('--optimizer', default=None, type=str)
+
 parser.add_argument('data', metavar='DIR',
                     help='path to (labeled) dataset')
 parser.add_argument('--ckpt_dir', default=None, type=str, metavar='PATH',
                     help='saving directory (default: none). A folder named {arch_finetuned} will be created.')
-parser.add_argument('-a', '--arch', metavar='ARCH', default='resnet18',
+parser.add_argument('--arch', metavar='ARCH', default='resnet18',
                     choices=model_names,
                     help='model architecture: ' +
                         ' | '.join(model_names) +
@@ -89,7 +90,9 @@ parser.add_argument('--multiprocessing-distributed', action='store_true',
                          'fastest way to use PyTorch for either single node or '
                          'multi node data parallel training')
 
-best_acc1 = 0
+
+best_val_acc1 = -1
+best_test_acc1 = -1
 
 def main():
     print("main() called", flush=True)
@@ -115,7 +118,6 @@ def main():
     args.distributed = args.world_size > 1 or args.multiprocessing_distributed
 
     ngpus_per_node = torch.cuda.device_count()
-    sys.stdout.flush()
 
     if args.multiprocessing_distributed:
         # Since we have ngpus_per_node processes per node, the total world_size
@@ -130,7 +132,8 @@ def main():
 
 
 def main_worker(gpu, ngpus_per_node, args):
-    global best_acc1
+    global best_val_acc1
+    global best_test_acc1
     args.gpu = gpu
 
     if args.gpu is not None:
@@ -192,9 +195,14 @@ def main_worker(gpu, ngpus_per_node, args):
     # define loss function (criterion) and optimizer
     criterion = nn.CrossEntropyLoss().cuda(args.gpu)
 
-    optimizer = torch.optim.SGD(model.parameters(), args.lr,
+    if (args.optimizer == 'svg'):
+        optimizer = torch.optim.SGD(model.parameters(), args.lr,
                                 momentum=args.momentum,
                                 weight_decay=args.weight_decay)
+    elif (args.optimizr == 'adam'):
+        optimizer = torch.optim.Adam(model.parameters(), lr=args.lr)
+    else:
+        raise ValueError('unrecognized/unimplimented optimizer')
 
     cudnn.benchmark = True
 
@@ -208,12 +216,11 @@ def main_worker(gpu, ngpus_per_node, args):
         print("No model supplied")
         exit(0)
 
+
     # Data loading code
-    print("Beginning Data Loading",flush=True)
+    print("Beginning Data Loading", flush=True)
     traindir = os.path.join(args.data, 'train')
     valdir = os.path.join(args.data, 'val')
-    normalize = transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                                     std=[0.229, 0.224, 0.225])
 
     train_dataset = datasets.ImageFolder(
         traindir,
@@ -244,6 +251,18 @@ def main_worker(gpu, ngpus_per_node, args):
         if not os.path.exists(finetuned_folder):
             os.makedirs(finetuned_folder)
 
+    testdir = None
+    if (os.path.isdir(os.path.join(args.data, 'test'))):
+        testdir = os.path.join(args.data, 'test')
+
+    if (testdir):
+        test_loader = torch.utils.data.DataLoader(
+            datasets.ImageFolder(testdir, get_test_transform()),
+            batch_size=args.batch_size, shuffle=False,
+            num_workers=args.workers, pin_memory=True)
+
+
+
     log_path = args.ckpt_dir + '/finetune_log'
     log_writer = SummaryWriter(log_path)
 
@@ -252,34 +271,38 @@ def main_worker(gpu, ngpus_per_node, args):
     for epoch in range(start_epoch, args.epochs):
         if args.distributed:
             train_sampler.set_epoch(epoch)
-        adjust_learning_rate(optimizer, epoch, args.lr, args.step)
+        if (args.optimizer == 'svg'):
+            adjust_learning_rate(optimizer, epoch, args.lr, args.step)
 
         # train for one epoch
         train(train_loader, model, criterion, optimizer, epoch, args)
-
-        # evaluate on validation set
-        acc1 = validate(val_loader, model, criterion, args)
 
         # remember best acc@1 and save checkpoint
         if (epoch%10==9) and not args.multiprocessing_distributed or (args.multiprocessing_distributed
                 and args.rank % ngpus_per_node == 0):
 
-            is_best = acc1 > best_acc1
-            best_acc1 = max(acc1, best_acc1)
+            # evaluate on validation set
+            val_acc1 = validate(val_loader, model, criterion, args)
+            best_val_acc1 = max(val_acc1, best_val_acc1)
+            log_writer.add_scalar("val_acc1", val_acc1, epoch+1)
+
+            # evaluate on test set
+            if(testdir):
+                test_acc1 = validate(test_loader, model, criterion, args)
+                log_writer.add_scalar("test_acc1", test_acc1, epoch+1)
 
             # log progress using tensorboard
-            log_writer.add_scalar("acc1", acc1, epoch+1)
             log_writer.flush()
 
             save_checkpoint({
                 'epoch': epoch + 1,
                 'arch': args.arch,
                 'state_dict': model.state_dict(),
-                'best_acc1': best_acc1,
+                'best_val_acc1': best_val_acc1,
+                'best_test_acc1': best_test_acc1,
                 'optimizer' : optimizer.state_dict(),
             }, folder=finetuned_folder)
-    print('finetuned_folder:', finetuned_folder)
-
+    print('finetuned model_best:', os.path.join(finetuned_folder, 'model_best.state'))
 
 def train(train_loader, model, criterion, optimizer, epoch, args):
     batch_time = AverageMeter('Time', ':6.3f')

@@ -1,18 +1,22 @@
 eaton_compute = True
 
 
-experiment = 'cifar+imagenet/p2'
+
+experiment = 'scratch_test'
 server = 'gc'
-class_data = 'cifar'
+class_data = 'arid'
 arch = 'resnet18'
-optimizer = 'SVG'
+optimizer = 'svg'
 augment = False
 stage = 4
-resume = '/scratch/ssolit/StreamingPerception/cifar+imagenet/p2/pseudo_train/resnet18_scratch/checkpoint.state'
+resume = '/scratch/ssolit/StreamingPerception/scratch_test/pseudo_train/resnet18_scratch/checkpoint.state'
 #resume = None
-data_txt = '/scratch/ssolit/data/imagenet_fixed1M/imagenet1M-2.txt'
-data_txt = '/scratch/ssolit/StreamingPerception/cifar+imagenet/p2/resnet18_scratch.txt'
-#eaton_compute = False
+data_txt = '/scratch/ssolit/data/imagenet_100_pics.txt'
+data_txt = '/scratch/ssolit/StreamingPerception/scratch_test/resnet18_scratch.txt'
+eaton_compute = False
+
+
+
 
 
 
@@ -41,10 +45,10 @@ else:
   partition = "compute"
 
 
-if (optimizer = 'svg'):
-  lr = 0.025
+if (optimizer == 'svg'):
+  lr = "0.025"
 elif (optimizer == 'adam'):
-  lr = 0.001
+  lr = "0.001"
 else:
     print("Error: unrecognized class_data")
     exit(1)
@@ -126,8 +130,8 @@ def get_py_str():
         py_str += " main_correct_size.py"
         py_str += " " + data_path
         py_str += " --classes " + get_class_num()
-        py_str += " --a " + arch_name
-        py_str += " --optimizer = " + optimizer
+        py_str += " --arch " + arch_name
+        py_str += " --optimizer " + optimizer
         py_str += " --epochs 3000"
         py_str += " --step 1200"
         py_str += " --ckpt_dir " + dir_path + "/init"
@@ -139,22 +143,22 @@ def get_py_str():
         py_str += " generate_labels_correct_fc.py"
         py_str += " /scratch/ssolit/data/"
         py_str += " --classes " + get_class_num()
-        py_str += " --a " + arch_name
+        py_str += " --arch " + arch_name
         py_str += " --data_save_dir " + dir_path
 
-        if(augment):
-          py_str += " --aug=True"
         if(resume != None):
           py_str += " --resume " + resume
         if(data_txt != None):
           py_str += " --data_txt " + data_txt
+        if(augment):
+          py_str += " --aug=True"
     #Pseudo Train
     elif (stage == 3):
         py_str += " main_g_correct_fc.py"
         py_str += " " + get_dir_path()
         py_str += " --classes " + get_class_num()
-        py_str += " --a " + arch_name
-        py_str += " --optimizer = " + optimizer
+        py_str += " --arch " + arch_name
+        py_str += " --optimizer " + optimizer
         py_str += " --epochs 30"
         py_str += " --step 25"
         py_str += " --ckpt_dir " + dir_path + "/pseudo_train"
@@ -175,8 +179,8 @@ def get_py_str():
         py_str += " main_gft_correct_fc.py"
         py_str += " " + data_path
         py_str += " --classes " + get_class_num()
-        py_str += " --a " + arch_name
-        py_str += " --optimizer = " + optimizer
+        py_str += " --arch " + arch_name
+        py_str += " --optimizer " + optimizer
         py_str += " --epochs 3000"
         py_str += " --step 1200"
         py_str += " --ckpt_dir " + dir_path + "/finetune"
