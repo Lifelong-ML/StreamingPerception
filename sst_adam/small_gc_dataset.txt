@@ -1,3 +1,0 @@
-/Datasets/imagenet/imagenet21k_resized/imagenet21k_train/n12741792/n12741792_8739.JPEG (1)
-/Datasets/imagenet/imagenet21k_resized/imagenet21k_train/n12741792/n12741792_747.JPEG (2)
-/Datasets/imagenet/imagenet21k_resized/imagenet21k_train/n12741792/n12741792_6417.JPEG (3)
