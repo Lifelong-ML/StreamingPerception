@@ -1,7 +1,7 @@
 eaton_compute = True
 
 
-
+'''
 experiment = 'scratch_test/p1'
 server = 'gc'
 class_data = 'arid'
@@ -15,7 +15,7 @@ resume = '/scratch/ssolit/StreamingPerception/scratch_test/p1/pseudo_train/resne
 data_txt = '/scratch/ssolit/data/imagenet_100_pics.txt'
 data_txt = '/scratch/ssolit/StreamingPerception/scratch_test/p1/resnet18_scratch.txt'
 eaton_compute = False
-
+'''
 
 '''
 experiment = 'f_resnet18_lrReset/p4'
@@ -25,7 +25,7 @@ arch = 'resnet18'
 optimizer = 'svg'
 augment = False
 stage = 4
-resume = '/scratch/ssolit/StreamingPerception/f_resnet18_lrReset/p4/ereset_model_best.state'
+resume = '/scratch/ssolit/StreamingPerception/f_resnet18_lrReset/p5/p4_ereset.state'
 #resume = None
 data_txt = '/scratch/ssolit/data/imagenet_137/imagenet7M.txt'
 #eaton_compute = False

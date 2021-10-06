@@ -33,5 +33,5 @@ print(og_folder)
 '''
 
 model = load(model_path, map_location='cpu')
-just_save_checkpoint({'epoch': 0, 'arch': model['arch'], 'state_dict': model['state_dict'], 'best_acc1': model['best_acc1'], 'optimizer': model['optimizer']}, folder=args.savedir, filename=new_file_name)
+just_save_checkpoint({'epoch': 0, 'arch': model['arch'], 'state_dict': model['state_dict'], 'best_val_acc1': model['best_val_acc1'], 'optimizer': model['optimizer']}, folder=args.savedir, filename=new_file_name)
 print('new model saved to ' + args.savedir + '/' + new_file_name)
