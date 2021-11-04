@@ -1,4 +1,4 @@
-name: albTest
+name: streamingEnv
 channels:
   - pytorch
   - nvidia
@@ -101,4 +101,4 @@ dependencies:
     - tqdm==4.61.1
     - urllib3==1.26.6
     - werkzeug==2.0.1
-prefix: /home/ssolit/miniconda3/envs/albTest
+prefix: /home/ssolit/miniconda3/envs/streamingEnv
